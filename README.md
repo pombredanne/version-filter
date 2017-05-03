@@ -22,9 +22,9 @@ mask = 'L.Y.Y'
 versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1', '1.10.0', 'nightly']
 current_version = '1.9.0'
 
-VersionFilter.semfilter(mask, versions, current_version)
+VersionFilter.semver_filter(mask, versions, current_version)
 # ['1.9.1', '1.10.0']
 
-VersionFilter.regexfilter(r'^night', versions)
+VersionFilter.regex_filter(r'^night', versions)
 # ['nightly']
 ```
