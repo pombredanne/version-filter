@@ -20,5 +20,3 @@ def test_readme_example_regex():
     assert(1 == len(subset))
     assert('nightly' in subset)
 
-def test_invalid_regex_pattern():
-    assert(True == False)
