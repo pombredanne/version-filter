@@ -13,13 +13,17 @@ class VersionFilter(object):
         current = semantic_version.Version(current_version)
         mask = VersionMask(mask)
 
-        selected_versions = []
+        _versions = []
         for version in versions:
             try:
                 v = semantic_version.Version(version)
             except ValueError:
                 continue  # skip invalid semver strings
+            _versions.append(v)
+        _versions.sort()
 
+        selected_versions = []
+        for v in _versions:
             if current >= v:
                 continue  # skip all versions 'less' than the current version
 
@@ -32,9 +36,40 @@ class VersionFilter(object):
             if mask.patch == LOCK and v.patch != current.patch:
                 continue  # skip all versions who's patch is not locked to the current version
 
-            selected_versions.append(version)
+            selected_versions.append(v)
 
-        return selected_versions
+        major_versions = []
+        if mask.major == YES:
+            major_slots = []
+            for version in selected_versions:
+                trunc_version = str(version.major)
+                if version.major > current.major and trunc_version not in major_slots:
+                    major_slots.append(trunc_version)
+                    major_versions.append(version)
+
+        minor_versions = []
+        if mask.minor == YES:
+            minor_slots = []
+            for version in selected_versions:
+                trunc_version = '{}.{}'.format(version.major, version.minor)
+                if version.minor > current.minor and trunc_version not in minor_slots:
+                    minor_slots.append(trunc_version)
+                    minor_versions.append(version)
+
+        patch_versions = []
+        if mask.patch == YES:
+            patch_slots = []
+            for version in selected_versions:
+                trunc_version = '{}.{}.{}'.format(version.major, version.minor, version.patch)
+                if version.patch > current.patch and trunc_version not in patch_slots:
+                    patch_slots.append(trunc_version)
+                    patch_versions.append(version)
+
+        if mask.major == YES or mask.minor == YES or mask.patch == YES:
+            selected_versions = sorted(list(set(major_versions + minor_versions + patch_versions)))
+
+
+        return [str(v) for v in selected_versions]
 
     @staticmethod
     def regex_filter(str, versions):
