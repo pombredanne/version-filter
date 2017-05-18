@@ -106,19 +106,95 @@ class VersionFilter(object):
         return [v for v in versions if regex.search(v)]
 
 
-class VersionMask(object):
-    def __init__(self, mask_str):
-        self.major, self.minor, self.patch = '', '', ''
-        self.str = mask_str
-        parts = mask_str.split('.')
-        if len(parts) >= 3:
-            self.patch = parts[2]
-        if len(parts) >= 2:
-            self.minor = parts[1]
-        if len(parts) >= 1:
-            self.major = parts[0]
-        if len(parts) == 0:
-            raise ValueError
+class SpecItemMask(object):
+    MAJOR = 0
+    MINOR = 1
+    PATCH = 2
+    YES = 'Y'
+    LOCK = 'L'
+
+    re_specitemmask = re.compile(r'^(<|<=||=|==|>=|>|!=|\^|~|~=)([0-9LY].*)$')
+
+    def __init__(self, specitemmask, current_version=None):
+        self.specitemmask = specitemmask
+        self.current_version = current_version
+        if current_version and isinstance(current_version, str):
+            # convert current_version to Version object
+            self.current_version = semantic_version.Version(current_version)
+
+        self.has_yes = False
+        self.has_lock = False
+        self.kind, self.version = self.parse(specitemmask)
+        self.spec = self.get_spec()
+
+    def __unicode__(self):
+        return "SpecItemMask <{} -> >"
+
+
+    def parse(self, specitemmask):
+        if '*' in specitemmask:
+            return '*', ''
+
+        match = self.re_specitemmask.match(specitemmask)
+        if not match:
+            raise ValueError('Invalid SpecItemMask: {}'.format(specitemmask))
+
+        kind, version = match.groups()
+        if self.YES in version:
+            self.has_yes = True
+            v_parts = version.split('.')
+            if v_parts[self.MAJOR] == self.YES:
+                self.yes_pos = self.MAJOR
+            if v_parts[self.MINOR] == self.YES:
+                self.yes_pos = self.MINOR
+            if v_parts[self.PATCH] == self.YES:
+                self.yes_pos = self.PATCH
+
+        if self.LOCK in version:
+            self.has_lock = True
+
+        if self.has_lock and not self.current_version:
+            raise ValueError('Without a current_version, SpecItemMask objects with LOCKs cannot be converted to Specs')
+
+        if self.has_lock:
+            v_parts = version.split('.')
+            if v_parts[self.MAJOR] == self.LOCK:
+                v_parts[self.MAJOR] = self.current_version.major
+            if v_parts[self.MINOR] == self.LOCK:
+                v_parts[self.MINOR] = self.current_version.minor
+            if v_parts[self.PATCH] == self.LOCK:
+                v_parts[self.PATCH] = self.current_version.patch
+            version = '.'.join([str(x) for x in v_parts])
+
+        if self.has_yes:
+            kind = '*'
+            version = ''
+
+        return kind, version
+
+
+    def get_spec(self):
+        return semantic_version.Spec("{}{}".format(self.kind, self.version))
+
+
+class SpecMask(object):
+    def __init__(self, specmask, current_version=None):
+        self.speckmask = specmask
+        self.current_version = current_version
+        self.parse(specmask)
+        all_specs = self.specs_ands + self.specs_ors
+
+        # if any of the sp
+        if any([s.has_lock for s in all_specs]) and not current_version:
+            raise ValueError('SpecMask must be given a current_version if LOCKs are specified')
+
+    def parse(self, specmask):
+        self.specs_ors = [x.strip() for x in specmask.split("||")]
+        self.specs_ands = [x.strip() for x in specmask.split("&&")]
+
+
+    def test(self, version):
+        pass
 
     def __str__(self):
         # return self.str
