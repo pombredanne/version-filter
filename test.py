@@ -174,3 +174,13 @@ def test_django_config_example_2():
     assert('1.8.2' in subset)
     assert('1.10.0' in subset)
 
+def test_django_current_example_1():
+    mask = 'Y.Y.0 || L.L.Y'  # new major and minors, patches to my minor
+    versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1', '1.10.0', '2.0.0', '2.0.1']
+    current_version = '1.8.1'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(4 == len(subset))
+    assert('1.8.2' in subset)
+    assert('1.9.0' in subset)
+    assert('1.10.0' in subset)
+    assert('2.0.0' in subset)
