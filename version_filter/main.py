@@ -1,10 +1,7 @@
 from __future__ import unicode_literals
 import re
-import operator
 import semantic_version
 
-LOCK = 'L'
-YES = 'Y'
 
 class VersionFilter(object):
 
@@ -28,9 +25,9 @@ class VersionFilter(object):
         return [str(v) for v in selected_versions]
 
     @staticmethod
-    def regex_filter(str, versions):
+    def regex_filter(regex_str, versions):
         """Return a list of versions that match the given regular expression."""
-        regex = re.compile(str)
+        regex = re.compile(regex_str)
         return [v for v in versions if regex.search(v)]
 
 
@@ -58,7 +55,6 @@ class SpecItemMask(object):
 
     def __unicode__(self):
         return "SpecItemMask <{} -> >"
-
 
     def parse(self, specitemmask):
         if '*' in specitemmask:
@@ -122,10 +118,6 @@ class SpecMask(object):
         self.op = None
         self.parse(specmask)
 
-        # if any of the sp
-        # if any([s.has_lock for s in self.specs]) and not current_version:
-        #     raise ValueError('SpecMask must be given a current_version if LOCKs are specified')
-
     def parse(self, specmask):
         if self.OR in specmask and self.AND in specmask:
             raise ValueError('SpecMask cannot contain both {} and {} operators'.format(self.OR, self.AND))
@@ -138,7 +130,7 @@ class SpecMask(object):
             self.specs = [x.strip() for x in specmask.split(self.AND)]
         else:
             self.op = self.AND
-            self.specs = [specmask.strip(),]
+            self.specs = [specmask.strip(), ]
 
         self.specs = [SpecItemMask(s, self.current_version) for s in self.specs]
 

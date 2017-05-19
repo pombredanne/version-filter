@@ -1,4 +1,6 @@
 *.pyc
 .idea/*
 .cache/*
+.coverage
+htmlcov/*
 env
