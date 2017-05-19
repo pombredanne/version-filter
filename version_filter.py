@@ -51,6 +51,7 @@ class SpecItemMask(object):
             self.current_version = semantic_version.Version(current_version)
 
         self.has_yes = False
+        self.yes_ver = None
         self.has_lock = False
         self.kind, self.version = self.parse(specitemmask)
         self.spec = self.get_spec()
@@ -68,16 +69,6 @@ class SpecItemMask(object):
             raise ValueError('Invalid SpecItemMask: "{}"'.format(specitemmask))
 
         kind, version = match.groups()
-        if self.YES in version:
-            self.has_yes = True
-            v_parts = version.split('.')
-            if v_parts[self.MAJOR] == self.YES:
-                self.yes_pos = self.MAJOR
-            if v_parts[self.MINOR] == self.YES:
-                self.yes_pos = self.MINOR
-            if v_parts[self.PATCH] == self.YES:
-                self.yes_pos = self.PATCH
-
         if self.LOCK in version:
             self.has_lock = True
 
@@ -85,6 +76,7 @@ class SpecItemMask(object):
             raise ValueError('Without a current_version, SpecItemMask objects with LOCKs cannot be converted to Specs')
 
         if self.has_lock:
+            # Substitute the current version integers for LOCKs
             v_parts = version.split('.')
             if v_parts[self.MAJOR] == self.LOCK:
                 v_parts[self.MAJOR] = self.current_version.major
@@ -93,6 +85,11 @@ class SpecItemMask(object):
             if v_parts[self.PATCH] == self.LOCK:
                 v_parts[self.PATCH] = self.current_version.patch
             version = '.'.join([str(x) for x in v_parts])
+
+        if self.YES in version:
+            self.has_yes = True
+            v_parts = version.split('.')
+            self.yes_ver = YesVersion(major=v_parts[0], minor=v_parts[1], patch=v_parts[2])
 
         if self.has_yes:
             kind = '*'
@@ -105,18 +102,10 @@ class SpecItemMask(object):
         if not self.has_yes:
             return spec_match
         else:
-            # if it had a YES flag, we must additionally make sure the version has zeros for each position
-            # 'less significant' than the YES position
-            if self.yes_pos == self.MAJOR:
-                return spec_match and version.minor == 0 and version.patch == 0
-            if self.yes_pos == self.MINOR:
-                return spec_match  and version.patch == 0
-            if self.yes_pos == self.PATCH:
-                return spec_match
+            return spec_match and version in self.yes_ver
 
     def __contains__(self, item):
         return self.match(item)
-
 
     def get_spec(self):
         return semantic_version.Spec("{}{}".format(self.kind, self.version))
@@ -183,3 +172,44 @@ class SpecMask(object):
 
     def __str__(self):
         return "SpecMask <{}".format(self.op.join(self.specs))
+
+
+class YesVersion(object):
+    YES = 'Y'
+    re_num = re.compile('^([0-9]+|Y)$')
+
+    def __init__(self, major=None, minor=None, patch=None):
+        if not all([self.re_num.match(major), self.re_num.match(minor), self.re_num.match(patch)]):
+            raise ValueError('all parameters are expected to be integers or the character "Y"')
+
+        try:
+            self.major = int(major)
+        except ValueError:
+            self.major = self.YES
+
+        try:
+            self.minor = int(minor)
+        except ValueError:
+            self.minor = self.YES
+
+        try:
+            self.patch = int(patch)
+        except ValueError:
+            self.patch = self.YES
+
+    def match(self, version):
+        """version matches if all non-YES fields are the same integer number, YES fields match any integer"""
+        if isinstance(version, str):
+            version = semantic_version.Version(version)
+
+        major_valid = self.major == version.major if self.major != self.YES else True
+        minor_valid = self.minor == version.minor if self.minor != self.YES else True
+        patch_valid = self.patch == version.patch if self.patch != self.YES else True
+
+        return all([major_valid, minor_valid, patch_valid])
+
+    def __contains__(self, item):
+        return self.match(item)
+
+    def __str__(self):
+        return "({}, {}, {})".format(self.major, self.minor, self.patch)

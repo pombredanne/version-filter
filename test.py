@@ -135,10 +135,9 @@ def test_minor_updates_2():
     versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1', '1.10.0', '2.0.0', '2.0.1']
     current_version = '1.8.0'
     subset = VersionFilter.semver_filter(mask, versions, current_version)
-    assert(3 == len(subset))
+    assert(2 == len(subset))
     assert('1.9.0' in subset)
     assert('1.10.0' in subset)
-    assert('2.0.0' in subset)
 
 def test_all_updates_1():
     mask = 'Y.Y.Y' # Give me every patch, minor and major update
