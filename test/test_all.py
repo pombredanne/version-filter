@@ -41,6 +41,11 @@ def test_specitemmask_yes3():
     assert(Spec('*') == s.spec)
 
 
+def test_specitemmask_modifiers_1():
+    s = SpecItemMask('>1.0.0')
+    assert(Spec('>1.0.0') == s.spec)
+
+
 def test_coerceable_version():
     s = SpecItemMask('1')
     assert(Spec('1') == s.spec)
@@ -204,3 +209,14 @@ def test_django_current_example_1():
     assert('1.9.0' in subset)
     assert('1.10.0' in subset)
     assert('2.0.0' in subset)
+
+def test_modifier_example_1():
+    mask = '>1.8.0 && <2.0.0'  # all releases between 1.8.0 and 2.0.0
+    versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1', '1.10.0', '2.0.0', '2.0.1']
+    current_version = '1.8.1'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(4 == len(subset))
+    assert('1.8.2' in subset)
+    assert('1.9.0' in subset)
+    assert('1.9.1' in subset)
+    assert('1.10.0' in subset)
