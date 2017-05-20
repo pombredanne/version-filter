@@ -25,7 +25,7 @@ If a mask is given and the mask uses current version references, an explicit cur
 imput must also be provided as an imput.
 
 Inputs
----------
+------
 
 Mask/Regex
 ~~~~~~~~~~
@@ -51,7 +51,7 @@ Boolean AND operators (``&&``) and boolean OR operators (``||``) can be used to 
 *cannot* be combined in the same expression.
 
 Mask Examples
-..............
+.............
 
 Some common examples:
 
@@ -71,9 +71,10 @@ Current Version
 ~~~~~~~~~~~~~~~
 
 Usage
-------
+-----
 
 .. code-block:: python
+
     from version-filter import VersionFilter
 
     mask = 'L.Y.Y'
@@ -86,20 +87,19 @@ Usage
     VersionFilter.regex_filter(r'^night', versions)
     # ['nightly']
 
-
 Resources
 ---------
 
-* [NPM Semver Spec](https://semver.npmjs.com/)
-* [Yarn](https://yarnpkg.com/lang/en/docs/dependency-versions/)
-* [Workman Docs](http://dependencies-public.netlify.com/docs/)
+* `NPM Semver Spec <https://semver.npmjs.com/>`_
+* `Yarn <https://yarnpkg.com/lang/en/docs/dependency-versions/>`_
+* `Workman Docs <http://dependencies-public.netlify.com/docs/>`_
 
 License
----------
+-------
 * Free software: MIT license
 * Documentation: https://version-filter.readthedocs.io.
 
 Credits
----------
+-------
 * Paul Ortman
 * Dave Gaeddert
