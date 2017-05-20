@@ -35,19 +35,19 @@ The Mask can be a SemVer v2 valid mask with the following extensions.
 Mask Lock Extension
 ...................
 
-Locks (`L`) are used as a substituion character in the mask where you want to limit the version filter to just those
-versions where it has the same value.  If a `L` is present anywhere in the mask, a current_version parameter must also
+Locks (``L``) are used as a substituion character in the mask where you want to limit the version filter to just those
+versions where it has the same value.  If a ``L`` is present anywhere in the mask, a current_version parameter must also
 be provided.
 
 Mask Yes Extension
 ..................
 
-Yes (`Y`) are used to provide wildcard acceptance of any value in the position of the `Y`.
+Yes (``Y``) are used to provide wildcard acceptance of any value in the position of the ``Y``.
 
 Boolean AND and OR
 ..................
 
-Boolean AND operators (`&&`) and boolean OR operators (`||`) can be used to combine masks.  However, both AND and OR
+Boolean AND operators (``&&``) and boolean OR operators (``||``) can be used to combine masks.  However, both AND and OR
 *cannot* be combined in the same expression.
 
 Mask Examples
@@ -55,12 +55,12 @@ Mask Examples
 
 Some common examples:
 
-* `'1.Y.0'` # return only those minor versions that are of major release 1
-* `'L.Y.0'` # return only those minor versions that are of the currently installed version
-* `'L.L.Y'` # return only those patch versions that are of the currently installed version
-* `'Y.Y.Y'` # return all major, minor and patch versions (same as '*')
-* `'L.L.Y || Y.Y.0'` # return patch versions of my currently installed version or all major and minor releases
-* `'>1.0.0 && <3.0.0` # return all versions between 1.0.0 and 3.0.0, exclusive
+* ``'1.Y.0'`` # return only those minor versions that are of major release 1
+* ``'L.Y.0'`` # return only those minor versions that are of the currently installed version
+* ``'L.L.Y'`` # return only those patch versions that are of the currently installed version
+* ``'Y.Y.Y'`` # return all major, minor and patch versions (same as '*')
+* ``'L.L.Y || Y.Y.0'`` # return patch versions of my currently installed version or all major and minor releases
+* ``'>1.0.0 && <3.0.0`` # return all versions between 1.0.0 and 3.0.0, exclusive
 
 List of version strings
 ~~~~~~~~~~~~~~~~~~~~~~~
