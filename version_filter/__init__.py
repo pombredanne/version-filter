@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+from .version_filter import VersionFilter, SpecMask, SpecItemMask
+import pkg_resources
 
 __author__ = """Dropseed"""
 __email__ = 'python@dropseed.io'
-__version__ = '0.1.0'
+__version__ = pkg_resources.get_distribution("configyaml").version

@@ -51,14 +51,14 @@ lint: ## check style with flake8
 	flake8 version_filter tests
 
 test: ## run tests quickly with the default Python
-	py.test
+	py.test tests
 	
 
 test-all: ## run tests on every Python version with tox
-	tox
+	tox tests
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source version_filter -m pytest
+	coverage run --source version_filter -m pytest tests
 	
 		coverage report -m
 		coverage html
