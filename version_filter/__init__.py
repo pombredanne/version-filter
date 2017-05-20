@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .version_filter import VersionFilter, SpecMask, SpecItemMask
+from .version_filter import VersionFilter, SpecMask, SpecItemMask  # noqa: F401
 import pkg_resources
 
 __author__ = """Dropseed"""
