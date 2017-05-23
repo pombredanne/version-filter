@@ -15,6 +15,7 @@ class VersionFilter(object):
         for version in versions:
             try:
                 v = parse_semver(version)
+                v.original_string = version
             except ValueError:
                 continue  # skip invalid semver strings
             _versions.append(v)
@@ -22,7 +23,7 @@ class VersionFilter(object):
 
         selected_versions = [v for v in _versions if v in _mask]
 
-        return [str(v) for v in selected_versions]
+        return [v.original_string for v in selected_versions]
 
     @staticmethod
     def regex_filter(regex_str, versions):
@@ -194,9 +195,20 @@ class YesVersion(object):
         """version matches if all non-YES fields are the same integer number, YES fields match any integer"""
         version = parse_semver(version)
 
-        major_valid = self.major == version.major if self.major != self.YES else True
-        minor_valid = self.minor == version.minor if self.minor != self.YES else True
-        patch_valid = self.patch == version.patch if self.patch != self.YES else True
+        if self.major:
+            major_valid = self.major == version.major if self.major != self.YES else True
+        else:
+            major_valid = 0 == version.major
+
+        if self.minor:
+            minor_valid = self.minor == version.minor if self.minor != self.YES else True
+        else:
+            minor_valid = 0 == version.minor
+
+        if self.patch:
+            patch_valid = self.patch == version.patch if self.patch != self.YES else True
+        else:
+            patch_valid = 0 == version.patch
 
         return all([major_valid, minor_valid, patch_valid])
 
@@ -204,12 +216,12 @@ class YesVersion(object):
         return self.match(item)
 
     def __str__(self):
-        return ".".join([x for x in [self.major, self.minor, self.patch] if x])
+        return ".".join([str(x) for x in [self.major, self.minor, self.patch] if x])
 
 
 def parse_semver(version):
     if isinstance(version, semantic_version.Version):
         return version
     if isinstance(version, str):
-        return semantic_version.Version(version, partial=True)
+        return semantic_version.Version.coerce(version)
     raise ValueError('version must be either a str or a Version object')
