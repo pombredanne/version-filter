@@ -8,13 +8,14 @@ class VersionFilter(object):
     @staticmethod
     def semver_filter(mask, versions, current_version=None):
         """Return a list of versions that are greater than the current version and that match the mask"""
-        current = semantic_version.Version(current_version) if current_version else None
+        current = parse_semver(current_version) if current_version else None
         _mask = SpecMask(mask, current)
 
         _versions = []
         for version in versions:
             try:
-                v = semantic_version.Version(version)
+                v = parse_semver(version)
+                v.original_string = version
             except ValueError:
                 continue  # skip invalid semver strings
             _versions.append(v)
@@ -22,7 +23,7 @@ class VersionFilter(object):
 
         selected_versions = [v for v in _versions if v in _mask]
 
-        return [str(v) for v in selected_versions]
+        return [v.original_string for v in selected_versions]
 
     @staticmethod
     def regex_filter(regex_str, versions):
@@ -42,10 +43,7 @@ class SpecItemMask(object):
 
     def __init__(self, specitemmask, current_version=None):
         self.specitemmask = specitemmask
-        self.current_version = current_version
-        if current_version and isinstance(current_version, str):
-            # convert current_version to Version object
-            self.current_version = semantic_version.Version(current_version)
+        self.current_version = parse_semver(current_version) if current_version else None
 
         self.has_yes = False
         self.yes_ver = None
@@ -73,18 +71,18 @@ class SpecItemMask(object):
 
         if self.has_lock:
             # Substitute the current version integers for LOCKs
-            v_parts = version.split('.')
+            v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
             if v_parts[self.MAJOR] == self.LOCK:
                 v_parts[self.MAJOR] = self.current_version.major
             if v_parts[self.MINOR] == self.LOCK:
                 v_parts[self.MINOR] = self.current_version.minor
             if v_parts[self.PATCH] == self.LOCK:
                 v_parts[self.PATCH] = self.current_version.patch
-            version = '.'.join([str(x) for x in v_parts])
+            version = '.'.join([str(x) for x in v_parts if x])
 
         if self.YES in version:
             self.has_yes = True
-            v_parts = version.split('.')
+            v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
             self.yes_ver = YesVersion(major=v_parts[0], minor=v_parts[1], patch=v_parts[2])
 
         if self.has_yes:
@@ -135,12 +133,7 @@ class SpecMask(object):
         self.specs = [SpecItemMask(s, self.current_version) for s in self.specs]
 
     def match(self, version):
-        if isinstance(version, str):
-            v = semantic_version.Version(version)
-        elif isinstance(version, semantic_version.Version):
-            v = version
-        else:
-            raise ValueError('version must be either a str or a Version object')
+        v = parse_semver(version)
 
         # We implicitly require that SpecMasks disregard releases older than the current_version if it is specified
         if self.current_version:
@@ -171,32 +164,51 @@ class YesVersion(object):
     re_num = re.compile('^([0-9]+|Y)$')
 
     def __init__(self, major=None, minor=None, patch=None):
-        if not all([self.re_num.match(major), self.re_num.match(minor), self.re_num.match(patch)]):
-            raise ValueError('all parameters are expected to be integers or the character "Y"')
+        self.major, self.minor, self.patch = None, None, None
 
-        try:
-            self.major = int(major)
-        except ValueError:
-            self.major = self.YES
+        if major is not None and not self.re_num.match(major):
+            raise ValueError('the major parameter is expected to be an integer or the character "Y"')
+        if minor is not None and not self.re_num.match(minor):
+            raise ValueError('the minor parameter is expected to be an integer or the character "Y"')
+        if patch is not None and not self.re_num.match(patch):
+            raise ValueError('the patch parameter is expected to be an integer or the character "Y"')
 
-        try:
-            self.minor = int(minor)
-        except ValueError:
-            self.minor = self.YES
+        if major:
+            try:
+                self.major = int(major)
+            except ValueError:
+                self.major = self.YES
 
-        try:
-            self.patch = int(patch)
-        except ValueError:
-            self.patch = self.YES
+        if minor:
+            try:
+                self.minor = int(minor)
+            except ValueError:
+                self.minor = self.YES
+
+        if patch:
+            try:
+                self.patch = int(patch)
+            except ValueError:
+                self.patch = self.YES
 
     def match(self, version):
         """version matches if all non-YES fields are the same integer number, YES fields match any integer"""
-        if isinstance(version, str):
-            version = semantic_version.Version(version)
+        version = parse_semver(version)
 
-        major_valid = self.major == version.major if self.major != self.YES else True
-        minor_valid = self.minor == version.minor if self.minor != self.YES else True
-        patch_valid = self.patch == version.patch if self.patch != self.YES else True
+        if self.major:
+            major_valid = self.major == version.major if self.major != self.YES else True
+        else:
+            major_valid = 0 == version.major
+
+        if self.minor:
+            minor_valid = self.minor == version.minor if self.minor != self.YES else True
+        else:
+            minor_valid = 0 == version.minor
+
+        if self.patch:
+            patch_valid = self.patch == version.patch if self.patch != self.YES else True
+        else:
+            patch_valid = 0 == version.patch
 
         return all([major_valid, minor_valid, patch_valid])
 
@@ -204,4 +216,12 @@ class YesVersion(object):
         return self.match(item)
 
     def __str__(self):
-        return "({}, {}, {})".format(self.major, self.minor, self.patch)
+        return ".".join([str(x) for x in [self.major, self.minor, self.patch] if x])
+
+
+def parse_semver(version):
+    if isinstance(version, semantic_version.Version):
+        return version
+    if isinstance(version, str):
+        return semantic_version.Version.coerce(version)
+    raise ValueError('version must be either a str or a Version object')
