@@ -103,6 +103,45 @@ def test_specmask_contains():
     assert('1.0.1' not in s)
 
 
+def test_partial_versions_1():
+    mask = '1.0'
+    s = SpecItemMask(mask)
+    assert(s.spec == Spec('1.0'))
+
+
+def test_partial_versions_2():
+    mask = '1'
+    s = SpecItemMask(mask)
+    assert(s.spec == Spec('1'))
+
+
+def test_partial_versions_3():
+    mask = 'L'
+    current_version = '1'
+    s = SpecItemMask(mask, current_version)
+    assert(s.spec == Spec('1'))
+
+
+def test_partial_versions_4():
+    mask = 'L.Y'
+    versions = ['1.8', '1.8.1', '1.8.2', '1.9', '1.9.1', '1.10', 'nightly']
+    current_version = '1.8'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('1.9' in subset)
+    assert('1.10' in subset)
+
+
+def test_partial_versions_5():
+    mask = 'L.Y.Y'
+    versions = ['1.8', '1.8.1', '1.8.2', '1.9', '1.9.1', '1.10', 'nightly']
+    current_version = '1.8'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(5 == len(subset))
+    assert('1.8' not in subset)
+    assert('nightly' not in subset)
+
+
 def test_readme_example_semver():
     mask = 'L.Y.Y'
     versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1', '1.10.0', 'nightly']
@@ -209,6 +248,7 @@ def test_django_current_example_1():
     assert('1.9.0' in subset)
     assert('1.10.0' in subset)
     assert('2.0.0' in subset)
+
 
 def test_modifier_example_1():
     mask = '>1.8.0 && <2.0.0'  # all releases between 1.8.0 and 2.0.0
