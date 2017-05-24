@@ -82,7 +82,7 @@ Resources
 
 * `NPM Semver Spec <https://semver.npmjs.com/>`_
 * `Yarn <https://yarnpkg.com/lang/en/docs/dependency-versions/>`_
-* `Workman Docs <http://dependencies-public.netlify.com/docs/>`_
+* `Dependencies.io Docs <http://dependencies-public.netlify.com/docs/>`_
 
 License
 -------
