@@ -1,5 +1,5 @@
 Welcome to version-filter's documentation!
-======================================
+==========================================
 
 Contents:
 
@@ -10,7 +10,9 @@ Contents:
    installation
    usage
    contributing
-   authorshistory
+   authors
+   history
+   releasing
 
 Indices and tables
 ==================
