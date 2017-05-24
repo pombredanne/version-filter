@@ -65,7 +65,7 @@ Usage
 
 .. code-block:: python
 
-    from version-filter import VersionFilter
+    from version_filter import VersionFilter
 
     mask = 'L.Y.Y'
     versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1', '1.10.0', 'nightly']
