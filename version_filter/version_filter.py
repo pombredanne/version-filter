@@ -8,13 +8,13 @@ class VersionFilter(object):
     @staticmethod
     def semver_filter(mask, versions, current_version=None):
         """Return a list of versions that are greater than the current version and that match the mask"""
-        current = parse_semver(current_version) if current_version else None
+        current = _parse_semver(current_version) if current_version else None
         _mask = SpecMask(mask, current)
 
         _versions = []
         for version in versions:
             try:
-                v = parse_semver(version)
+                v = _parse_semver(version)
                 v.original_string = version
             except ValueError:
                 continue  # skip invalid semver strings
@@ -43,7 +43,7 @@ class SpecItemMask(object):
 
     def __init__(self, specitemmask, current_version=None):
         self.specitemmask = specitemmask
-        self.current_version = parse_semver(current_version) if current_version else None
+        self.current_version = _parse_semver(current_version) if current_version else None
 
         self.has_yes = False
         self.yes_ver = None
@@ -133,7 +133,7 @@ class SpecMask(object):
         self.specs = [SpecItemMask(s, self.current_version) for s in self.specs]
 
     def match(self, version):
-        v = parse_semver(version)
+        v = _parse_semver(version)
 
         # We implicitly require that SpecMasks disregard releases older than the current_version if it is specified
         if self.current_version:
@@ -193,7 +193,7 @@ class YesVersion(object):
 
     def match(self, version):
         """version matches if all non-YES fields are the same integer number, YES fields match any integer"""
-        version = parse_semver(version)
+        version = _parse_semver(version)
 
         if self.major:
             major_valid = self.major == version.major if self.major != self.YES else True
@@ -219,7 +219,7 @@ class YesVersion(object):
         return ".".join([str(x) for x in [self.major, self.minor, self.patch] if x])
 
 
-def parse_semver(version):
+def _parse_semver(version):
     if isinstance(version, semantic_version.Version):
         return version
     if isinstance(version, str):
