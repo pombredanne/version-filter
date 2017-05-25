@@ -80,6 +80,7 @@ Usage
 Resources
 ---------
 
+* `Semver Specification <http://semver.org//>`_
 * `NPM Semver Spec <https://semver.npmjs.com/>`_
 * `Yarn <https://yarnpkg.com/lang/en/docs/dependency-versions/>`_
 * `Dependencies.io Docs <http://dependencies-public.netlify.com/docs/>`_
