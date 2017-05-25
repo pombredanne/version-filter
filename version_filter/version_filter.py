@@ -82,8 +82,7 @@ class SpecItemMask(object):
 
         if self.YES in version:
             self.has_yes = True
-            v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
-            self.yes_ver = YesVersion(major=v_parts[0], minor=v_parts[1], patch=v_parts[2])
+            self.yes_ver = YesVersion(version)
 
         if self.has_yes:
             kind = '*'
@@ -161,35 +160,52 @@ class SpecMask(object):
 
 class YesVersion(object):
     YES = 'Y'
-    re_num = re.compile('^([0-9]+|Y)$')
+    re_prerelease_part = re.compile(r'^([0-9]+|Y)-(.*)$')
+    re_num = re.compile(r'^[0-9]+|Y$')
 
-    def __init__(self, major=None, minor=None, patch=None):
-        self.major, self.minor, self.patch = None, None, None
+    def __init__(self, version_str):
+        self.major, self.minor, self.patch, self.prerelease = None, None, None, None
+        self.parse(version_str)
 
-        if major is not None and not self.re_num.match(major):
-            raise ValueError('the major parameter is expected to be an integer or the character "Y"')
-        if minor is not None and not self.re_num.match(minor):
-            raise ValueError('the minor parameter is expected to be an integer or the character "Y"')
-        if patch is not None and not self.re_num.match(patch):
-            raise ValueError('the patch parameter is expected to be an integer or the character "Y"')
+    def parse(self, version_str):
+        """Parse a version_str into components"""
 
-        if major:
-            try:
-                self.major = int(major)
-            except ValueError:
-                self.major = self.YES
+        components = version_str.split('.')
+        for part in components:
 
-        if minor:
-            try:
-                self.minor = int(minor)
-            except ValueError:
-                self.minor = self.YES
+            prerelease_match = self.re_prerelease_part.match(part)
+            # if any of the components looks like a pre-release component ...
+            if prerelease_match:
+                self.patch, self.prerelease = prerelease_match.groups()
+                continue
 
-        if patch:
-            try:
-                self.patch = int(patch)
-            except ValueError:
-                self.patch = self.YES
+            num_match = self.re_num.match(part)
+            if not num_match:
+                raise ValueError('YesVersion components are expected to be an integer or the character "Y",'
+                                 'not: {}'.format(version_str))
+
+            if not self.major:
+                self.major = self._int_or_Y(part)
+                continue
+
+            if not self.minor:
+                self.minor = self._int_or_Y(part)
+                continue
+
+            if not self.patch:
+                self.patch = self._int_or_Y(part)
+                continue
+
+            # if we ever get here we've gotten too many components
+            raise ValueError('YesVersion received an invalid version string: {}'.format(version_str))
+
+    def _int_or_Y(self, s):
+        try:
+            ret = int(s)
+        except ValueError:
+            ret = self.YES
+        return ret
+
 
     def match(self, version):
         """version matches if all non-YES fields are the same integer number, YES fields match any integer"""
@@ -210,7 +226,19 @@ class YesVersion(object):
         else:
             patch_valid = 0 == version.patch
 
-        return all([major_valid, minor_valid, patch_valid])
+        if self.prerelease:
+            if self.prerelease == self.YES:
+                prerelease_valid = True
+            else:
+                # version.prerelease is a tuple of subcomponents, check to make sure they are all present in our string
+                if all([x in self.prerelease for x in version.prerelease]):
+                    prerelease_valid = True
+                else:
+                    prerelease_valid = False
+        else:
+            prerelease_valid = version.prerelease is ()
+
+        return all([major_valid, minor_valid, patch_valid, prerelease_valid])
 
     def __contains__(self, item):
         return self.match(item)
