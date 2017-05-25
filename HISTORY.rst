@@ -2,7 +2,7 @@
 History
 =======
 
-0.2.0 (unreleased)
+0.2.0 (2017-05-24)
 ------------------
 
 - Add support for pre-release versions
