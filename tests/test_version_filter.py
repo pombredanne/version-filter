@@ -260,3 +260,20 @@ def test_modifier_example_1():
     assert('1.9.0' in subset)
     assert('1.9.1' in subset)
     assert('1.10.0' in subset)
+
+
+def test_prerelease_1():
+    mask = 'L.Y.Y'
+    versions = ['0.9.5', '1.0.0-alpha.e2', '1.0.0-alpha.12', '1.0.0-alpha.58']
+    current_version = '0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(0 == len(subset))
+
+
+def test_prerelease_2():
+    mask = 'L.Y.Y-Y'
+    versions = ['0.9.5', '1.0.0-alpha.e2', '1.0.0-alpha.12', '1.0.0-alpha.58']
+    current_version = '0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(3 == len(subset))
+    assert('0.9.5' not in subset)
