@@ -25,14 +25,15 @@ The Mask can be a SemVer v2 valid mask with the following extensions.
 Mask Lock Extension
 ...................
 
-Locks (``L``) are used as a substituion character in the mask where you want to limit the version filter to just those
-versions where it has the same value.  If a ``L`` is present anywhere in the mask, a current_version parameter must also
-be provided.
+Locks (``L``) are used as a substitution character in the mask for the major, minor and patch components where you want
+to limit the version filter to just those versions where it has the same value as the given current_version.  If a ``L``
+is present anywhere in the mask, a current_version parameter must also be provided.
 
 Mask Yes Extension
 ..................
 
-Yes (``Y``) are used to provide wildcard acceptance of any value in the position of the ``Y``.
+Yes (``Y``) are used to provide wildcard acceptance of any value in the position of the ``Y``.  It can be used in the
+major, minor, patch or pre-release components of version'
 
 Boolean AND and OR
 ..................
@@ -46,19 +47,24 @@ Mask Examples
 Some common examples:
 
 * ``'1.Y.0'`` # return only those minor versions that are of major release 1
-* ``'L.Y.0'`` # return only those minor versions that are of the currently installed version
-* ``'L.L.Y'`` # return only those patch versions that are of the currently installed version
-* ``'Y.Y.Y'`` # return all major, minor and patch versions (same as '*')
+* ``'L.Y.0'`` # return only those minor versions that are greater than the currently installed version, but in the same
+    major release
+* ``'L.L.Y'`` # return only those patch versions that are greater than the currently installed version, but in the same
+    major and minor release
+* ``'Y.Y.Y'`` # return all major, minor and patch versions
+* ``'Y.Y.Y-Y'`` # return all major, minor, patch and prerelease versions
 * ``'L.L.Y || Y.Y.0'`` # return patch versions of my currently installed version or all major and minor releases
 * ``'>1.0.0 && <3.0.0'`` # return all versions between 1.0.0 and 3.0.0, exclusive
 
 List of version strings
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The list of version strings is expected to be a set of well formed semantic versions
+The list of version strings is expected to be a set of well formed semantic versions conforming to the SevVer v2 spec.
 
 Current Version
 ~~~~~~~~~~~~~~~
+
+A version string that conforms to the SemVer v2 spec.
 
 Usage
 -----
@@ -80,6 +86,7 @@ Usage
 Resources
 ---------
 
+* `Semver Specification <http://semver.org//>`_
 * `NPM Semver Spec <https://semver.npmjs.com/>`_
 * `Yarn <https://yarnpkg.com/lang/en/docs/dependency-versions/>`_
 * `Dependencies.io Docs <http://dependencies-public.netlify.com/docs/>`_
