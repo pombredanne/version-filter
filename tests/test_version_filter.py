@@ -275,5 +275,20 @@ def test_prerelease_2():
     versions = ['0.9.5', '1.0.0-alpha.e2', '1.0.0-alpha.12', '1.0.0-alpha.58']
     current_version = '0.9.5'
     subset = VersionFilter.semver_filter(mask, versions, current_version)
-    assert(3 == len(subset))
-    assert('0.9.5' not in subset)
+    assert(0 == len(subset))
+
+def test_prerelease_3():
+    mask = 'L.Y.Y-Y'
+    versions = ['0.9.5', '1.0.0-alpha.e2', '1.0.0-alpha.12', '1.0.0-alpha.58', '0.9.6-alpha.ef']
+    current_version = '0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.9.6-alpha.ef' in subset)
+
+def test_prerelease_4():
+    mask = 'L.Y.Y'
+    versions = ['0.9.5', '1.0.0-alpha.e2', '1.0.0-alpha.12', '1.0.0-alpha.58', '0.9.6', '1.0.0']
+    current_version = '0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.9.6' in subset)

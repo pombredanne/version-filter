@@ -78,7 +78,7 @@ class SpecItemMask(object):
                 v_parts[self.MINOR] = self.current_version.minor
             if v_parts[self.PATCH] == self.LOCK:
                 v_parts[self.PATCH] = self.current_version.patch
-            version = '.'.join([str(x) for x in v_parts if x])
+            version = '.'.join([str(x) for x in v_parts if x is not None])
 
         if self.YES in version:
             self.has_yes = True
@@ -184,28 +184,27 @@ class YesVersion(object):
                 raise ValueError('YesVersion components are expected to be an integer or the character "Y",'
                                  'not: {}'.format(version_str))
 
-            if not self.major:
-                self.major = self._int_or_Y(part)
+            if self.major is None:
+                self.major = self._int_or_y(part)
                 continue
 
-            if not self.minor:
-                self.minor = self._int_or_Y(part)
+            if self.minor is None:
+                self.minor = self._int_or_y(part)
                 continue
 
-            if not self.patch:
-                self.patch = self._int_or_Y(part)
+            if self.patch is None:
+                self.patch = self._int_or_y(part)
                 continue
 
             # if we ever get here we've gotten too many components
             raise ValueError('YesVersion received an invalid version string: {}'.format(version_str))
 
-    def _int_or_Y(self, s):
+    def _int_or_y(self, s):
         try:
             ret = int(s)
         except ValueError:
             ret = self.YES
         return ret
-
 
     def match(self, version):
         """version matches if all non-YES fields are the same integer number, YES fields match any integer"""
