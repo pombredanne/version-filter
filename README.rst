@@ -48,9 +48,9 @@ Some common examples:
 
 * ``'1.Y.0'`` # return only those minor versions that are of major release 1
 * ``'L.Y.0'`` # return only those minor versions that are greater than the currently installed version, but in the same
-    major release
+  major release
 * ``'L.L.Y'`` # return only those patch versions that are greater than the currently installed version, but in the same
-    major and minor release
+  major and minor release
 * ``'Y.Y.Y'`` # return all major, minor and patch versions
 * ``'Y.Y.Y-Y'`` # return all major, minor, patch and prerelease versions
 * ``'L.L.Y || Y.Y.0'`` # return patch versions of my currently installed version or all major and minor releases
