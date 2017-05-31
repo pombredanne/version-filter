@@ -277,6 +277,7 @@ def test_prerelease_2():
     subset = VersionFilter.semver_filter(mask, versions, current_version)
     assert(0 == len(subset))
 
+
 def test_prerelease_3():
     mask = 'L.Y.Y-Y'
     versions = ['0.9.5', '1.0.0-alpha.e2', '1.0.0-alpha.12', '1.0.0-alpha.58', '0.9.6-alpha.ef']
@@ -285,6 +286,7 @@ def test_prerelease_3():
     assert(1 == len(subset))
     assert('0.9.6-alpha.ef' in subset)
 
+
 def test_prerelease_4():
     mask = 'L.Y.Y'
     versions = ['0.9.5', '1.0.0-alpha.e2', '1.0.0-alpha.12', '1.0.0-alpha.58', '0.9.6', '1.0.0']
@@ -292,6 +294,7 @@ def test_prerelease_4():
     subset = VersionFilter.semver_filter(mask, versions, current_version)
     assert(1 == len(subset))
     assert('0.9.6' in subset)
+
 
 def test_prerelease_5():
     mask = 'Y.Y.Y'
@@ -302,8 +305,53 @@ def test_prerelease_5():
     assert('0.9.6' in subset)
     assert('1.0.0' in subset)
 
+
 def test_prerelease_6():
     mask = 'Y.Y.Y-Y'
     versions = ['0.9.5', '1.0.0-alpha.e2', '1.0.0-alpha.12', '1.0.0-alpha.58', '0.9.6', '1.0.0']
     subset = VersionFilter.semver_filter(mask, versions)
     assert(6 == len(subset))
+
+
+def test_v_prefix_on_versions():
+    mask = 'L.L.Y'
+    versions = ['v0.9.5', 'v0.9.6', 'v1.0.0']
+    current_version = '0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('v0.9.6' in subset)
+
+
+def test_v_prefix_on_current_version():
+    mask = 'L.L.Y'
+    versions = ['0.9.5', '0.9.6', '1.0.0']
+    current_version = 'v0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.9.6' in subset)
+
+
+def test_eq_prefix_on_versions():
+    mask = 'L.L.Y'
+    versions = ['=0.9.5', '=0.9.6', '=1.0.0']
+    current_version = '0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('=0.9.6' in subset)
+
+
+def test_eq_prefix_on_current_version():
+    mask = 'L.L.Y'
+    versions = ['0.9.5', '0.9.6', '1.0.0']
+    current_version = '=0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.9.6' in subset)
+
+
+def test_v_and_eq_prefix_on_current_version():
+    mask = 'L.L.Y'
+    versions = ['0.9.5', '0.9.6', '1.0.0']
+    current_version = 'v=0.9.5'
+    with pytest.raises(ValueError):
+        VersionFilter.semver_filter(mask, versions, current_version)

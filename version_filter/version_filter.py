@@ -250,5 +250,7 @@ def _parse_semver(version):
     if isinstance(version, semantic_version.Version):
         return version
     if isinstance(version, str):
-        return semantic_version.Version.coerce(version)
+        # strip leading 'v' and '=' chars
+        cleaned = version[1:] if version.startswith('=') or version.startswith('v') else version
+        return semantic_version.Version.coerce(cleaned)
     raise ValueError('version must be either a str or a Version object')
