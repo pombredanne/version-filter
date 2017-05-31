@@ -2,10 +2,10 @@
 History
 =======
 
-0.2.1 (unreleased)
+0.3.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Accept (but ignore) version strings with leading 'v' or '=' characters
 
 
 0.2.0 (2017-05-24)
