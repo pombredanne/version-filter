@@ -5,8 +5,8 @@ import semantic_version
 
 class VersionFilter(object):
 
-    @classmethod
-    def semver_filter(cls, mask, versions, current_version=None):
+    @staticmethod
+    def semver_filter(mask, versions, current_version=None):
         """Return a list of versions that are greater than the current version and that match the mask"""
         current = _parse_semver(current_version) if current_version else None
         _mask = SpecMask(mask, current)
@@ -25,8 +25,8 @@ class VersionFilter(object):
 
         return [v.original_string for v in selected_versions]
 
-    @classmethod
-    def regex_filter(cls, regex_str, versions):
+    @staticmethod
+    def regex_filter(regex_str, versions):
         """Return a list of versions that match the given regular expression."""
         regex = re.compile(regex_str)
         return [v for v in versions if regex.search(v)]
