@@ -59,7 +59,7 @@ Some common examples:
 List of version strings
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The list of version strings is expected to be a set of well formed semantic versions conforming to the SevVer v2 spec.
+The list of version strings is expected to be a set of well formed semantic versions conforming to the SemVer v2 spec.
 
 Current Version
 ~~~~~~~~~~~~~~~
