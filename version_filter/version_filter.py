@@ -3,6 +3,12 @@ import re
 import semantic_version
 
 
+_LOCK = 'L'
+_YES = 'Y'
+_MAJOR = 0
+_MINOR = 1
+_PATCH = 2
+
 class VersionFilter(object):
 
     @staticmethod
@@ -33,12 +39,6 @@ class VersionFilter(object):
 
 
 class SpecItemMask(object):
-    MAJOR = 0
-    MINOR = 1
-    PATCH = 2
-    YES = 'Y'
-    LOCK = 'L'
-
     re_specitemmask = re.compile(r'^(<|<=||=|==|>=|>|!=|\^|~|~=)([0-9LY].*)$')
 
     def __init__(self, specitemmask, current_version=None):
@@ -49,6 +49,7 @@ class SpecItemMask(object):
         self.yes_ver = None
         self.has_lock = False
         self.kind, self.version = self.parse(specitemmask)
+        self.version = self.substitute(self.version, self.current_version)
         self.spec = self.get_spec()
 
     def __unicode__(self):
@@ -63,24 +64,10 @@ class SpecItemMask(object):
             raise ValueError('Invalid SpecItemMask: "{}"'.format(specitemmask))
 
         kind, version = match.groups()
-        if self.LOCK in version:
+        if _LOCK in version:
             self.has_lock = True
 
-        if self.has_lock and not self.current_version:
-            raise ValueError('Without a current_version, SpecItemMask objects with LOCKs cannot be converted to Specs')
-
-        if self.has_lock:
-            # Substitute the current version integers for LOCKs
-            v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
-            if v_parts[self.MAJOR] == self.LOCK:
-                v_parts[self.MAJOR] = self.current_version.major
-            if v_parts[self.MINOR] == self.LOCK:
-                v_parts[self.MINOR] = self.current_version.minor
-            if v_parts[self.PATCH] == self.LOCK:
-                v_parts[self.PATCH] = self.current_version.patch
-            version = '.'.join([str(x) for x in v_parts if x is not None])
-
-        if self.YES in version:
+        if _YES in version:
             self.has_yes = True
             self.yes_ver = YesVersion(version)
 
@@ -90,11 +77,33 @@ class SpecItemMask(object):
 
         return kind, version
 
+    def substitute(self, version, current_version):
+        if self.has_lock and not current_version:
+            raise ValueError('Without a current_version, SpecItemMask objects with LOCKs cannot be converted to Specs')
+
+        if self.has_lock:
+            version = _substitute_current_version(version, self.current_version)
+
+        return version
+
+    @classmethod
+    def is_valid(cls, specitemmask):
+        try:
+            cls.parse(specitemmask)
+        except:
+            return False
+
+        return True
+
     def match(self, version):
         spec_match = version in self.spec
         if not self.has_yes:
             return spec_match
         else:
+            if self.has_lock:
+                assert self.current_version
+                self.yes_ver.substitute(self.current_version)
+
             return spec_match and version in self.yes_ver
 
     def __contains__(self, item):
@@ -111,9 +120,8 @@ class SpecMask(object):
     def __init__(self, specmask, current_version=None):
         self.speckmask = specmask
         self.current_version = current_version
-        self.specs = None
         self.op = None
-        self.parse(specmask)
+        self.specs = self.itemparse(self.parse(specmask))
 
     def parse(self, specmask):
         if self.OR in specmask and self.AND in specmask:
@@ -121,15 +129,24 @@ class SpecMask(object):
 
         if self.OR in specmask:
             self.op = self.OR
-            self.specs = [x.strip() for x in specmask.split(self.OR)]
+            specs = [x.strip() for x in specmask.split(self.OR)]
         elif self.AND in specmask:
             self.op = self.AND
-            self.specs = [x.strip() for x in specmask.split(self.AND)]
+            specs = [x.strip() for x in specmask.split(self.AND)]
         else:
             self.op = self.AND
-            self.specs = [specmask.strip(), ]
+            specs = [specmask.strip(), ]
 
-        self.specs = [SpecItemMask(s, self.current_version) for s in self.specs]
+        return specs
+
+    def itemparse(self, specs):
+        specs = [SpecItemMask(s, self.current_version) for s in specs]
+        return specs
+
+    @classmethod
+    def itemvalidate(cls, specs):
+        specs = [SpecItemMask.is_valid(s) for s in specs]
+        return all(specs)
 
     def match(self, version):
         v = _parse_semver(version)
@@ -145,6 +162,16 @@ class SpecMask(object):
         else:
             return any([v in x for x in self.specs]) and v in newer_than_current
 
+    @classmethod
+    def is_valid(cls, specmask):
+        try:
+            specs = cls.parse(specmask)
+        except ValueError:
+            return False
+        if cls.itemparse(specs):
+            return True
+        return False
+
     def __contains__(self, item):
         return self.match(item)
 
@@ -159,9 +186,8 @@ class SpecMask(object):
 
 
 class YesVersion(object):
-    YES = 'Y'
-    re_prerelease_part = re.compile(r'^([0-9]+|Y)-(.*)$')
-    re_num = re.compile(r'^[0-9]+|Y$')
+    re_prerelease_part = re.compile(r'^([0-9]+|Y|L)-(.*)$')
+    re_num = re.compile(r'^[0-9]+|Y|L$')
 
     def __init__(self, version_str):
         self.major, self.minor, self.patch, self.prerelease = None, None, None, None
@@ -185,25 +211,35 @@ class YesVersion(object):
                                  'not: {}'.format(version_str))
 
             if self.major is None:
-                self.major = self._int_or_y(part)
+                self.major = self._safe_value(part)
                 continue
 
             if self.minor is None:
-                self.minor = self._int_or_y(part)
+                self.minor = self._safe_value(part)
                 continue
 
             if self.patch is None:
-                self.patch = self._int_or_y(part)
+                self.patch = self._safe_value(part)
                 continue
 
             # if we ever get here we've gotten too many components
             raise ValueError('YesVersion received an invalid version string: {}'.format(version_str))
 
-    def _int_or_y(self, s):
+    def substitute(self, current_version):
+        version_str = str(self)
+        version_str = _substitute_current_version(version_str, current_version)
+        self.major, self.minor, self.patch, self.prerelease = None, None, None, None
+        self.parse(version_str)
+
+    def _safe_value(self, s):
+        if s == _YES:
+            return _YES
+        if s == _LOCK:
+            return _LOCK
         try:
             ret = int(s)
         except ValueError:
-            ret = self.YES
+            raise
         return ret
 
     def match(self, version):
@@ -211,22 +247,22 @@ class YesVersion(object):
         version = _parse_semver(version)
 
         if self.major:
-            major_valid = self.major == version.major if self.major != self.YES else True
+            major_valid = self.major == version.major if self.major != _YES else True
         else:
             major_valid = 0 == version.major
 
         if self.minor:
-            minor_valid = self.minor == version.minor if self.minor != self.YES else True
+            minor_valid = self.minor == version.minor if self.minor != _YES else True
         else:
             minor_valid = 0 == version.minor
 
         if self.patch:
-            patch_valid = self.patch == version.patch if self.patch != self.YES else True
+            patch_valid = self.patch == version.patch if self.patch != _YES else True
         else:
             patch_valid = 0 == version.patch
 
         if self.prerelease:
-            if self.prerelease == self.YES:
+            if self.prerelease == _YES:
                 prerelease_valid = True
             else:
                 # version.prerelease is a tuple of subcomponents, check to make sure they are all present in our string
@@ -243,7 +279,10 @@ class YesVersion(object):
         return self.match(item)
 
     def __str__(self):
-        return ".".join([str(x) for x in [self.major, self.minor, self.patch] if x])
+        v = ".".join([str(x) for x in [self.major, self.minor, self.patch] if x is not None])
+        v = v + '-{}'.format(self.prerelease) if self.prerelease is not None else v
+
+        return v
 
 
 def _parse_semver(version):
@@ -254,3 +293,23 @@ def _parse_semver(version):
         cleaned = version[1:] if version.startswith('=') or version.startswith('v') else version
         return semantic_version.Version.coerce(cleaned)
     raise ValueError('version must be either a str or a Version object')
+
+
+def _substitute_current_version(version, current_version):
+    assert isinstance(current_version, semantic_version.Version)
+    assert isinstance(version, str)
+
+
+    # Todo: what to do about not loosing the pre-release part?
+
+    # Substitute the current version integers for LOCKs
+    v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
+    if v_parts[_MAJOR] == _LOCK:
+        v_parts[_MAJOR] = current_version.major
+    if v_parts[_MINOR] == _LOCK:
+        v_parts[_MINOR] = current_version.minor
+    if v_parts[_PATCH] == _LOCK:
+        v_parts[_PATCH] = current_version.patch
+    version = '.'.join([str(x) for x in v_parts if x is not None])
+
+    return version
