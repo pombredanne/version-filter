@@ -9,6 +9,7 @@ def test_specitemmask_asterisk():
     s = SpecItemMask('*')
     assert(Spec('*') == s.spec)
     assert(Version('0.0.1') in s.spec)
+    assert(Version('0.1.1-alpha') in s.spec)
 
 
 def test_specitemmask_lock1():

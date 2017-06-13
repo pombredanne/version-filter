@@ -55,6 +55,7 @@ Some common examples:
 * ``'Y.Y.Y-Y'`` # return all major, minor, patch and prerelease versions
 * ``'L.L.Y || Y.Y.0'`` # return patch versions of my currently installed version or all major and minor releases
 * ``'>1.0.0 && <3.0.0'`` # return all versions between 1.0.0 and 3.0.0, exclusive
+* ``'*'`` # return all versions, including pre-releases
 
 List of version strings
 ~~~~~~~~~~~~~~~~~~~~~~~
