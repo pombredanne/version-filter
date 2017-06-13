@@ -218,6 +218,15 @@ def test_explicit_major_updates_only_1():
     assert('2.0.0' in subset)
 
 
+def test_python_filter():
+    mask = 'Y.Y.Y'
+    versions = ['0.1.0', '1.1.0', '1.2.1.dev0', '1.2.dev0', '1.2.post0', '1.2.0a1']
+    subset = VersionFilter.semver_filter(mask, versions)
+    assert(2 == len(subset))
+    assert('0.1.0' in subset)
+    assert('1.1.0' in subset)
+
+
 def test_django_config_example_1():
     mask = '1.8.Y'
     versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1', '1.10.0', '2.0.0', '2.0.1']
