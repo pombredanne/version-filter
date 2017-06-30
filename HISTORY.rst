@@ -2,7 +2,7 @@
 History
 =======
 
-0.4.0 (unreleased)
+0.4.0 (2017-06-30)
 ------------------
 
 - Do two-staging parsing of version strings to be more accurate and robust
