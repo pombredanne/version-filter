@@ -258,8 +258,11 @@ def _parse_semver(version):
     if isinstance(version, str):
         # strip leading 'v' and '=' chars
         cleaned = version[1:] if version.startswith('=') or version.startswith('v') else version
-        v = semantic_version.Version.coerce(cleaned)
-        if len(v.build) > 0:
-            raise InvalidSemverError('build fields should not be used')
+        try:
+            v = semantic_version.Version(cleaned)
+        except ValueError:
+            v = semantic_version.Version.coerce(cleaned)
+            if len(v.build) > 0:
+                raise InvalidSemverError('build fields should not be used')
         return v
     raise ValueError('version must be either a str or a Version object')
