@@ -2,6 +2,7 @@ import pytest
 
 from version_filter import VersionFilter
 from version_filter import SpecItemMask, SpecMask
+from version_filter.version_filter import _parse_semver, InvalidSemverError
 from semantic_version import Version, Spec
 
 
@@ -218,6 +219,15 @@ def test_explicit_major_updates_only_1():
     assert('2.0.0' in subset)
 
 
+def test_python_filter():
+    mask = 'Y.Y.Y'
+    versions = ['0.1.0', '1.1.0', '1.2.1.dev0', '1.2.dev0', '1.2.post0', '1.2.0a1']
+    subset = VersionFilter.semver_filter(mask, versions)
+    assert(2 == len(subset))
+    assert('0.1.0' in subset)
+    assert('1.1.0' in subset)
+
+
 def test_django_config_example_1():
     mask = '1.8.Y'
     versions = ['1.8.0', '1.8.1', '1.8.2', '1.9.0', '1.9.1', '1.10.0', '2.0.0', '2.0.1']
@@ -356,3 +366,15 @@ def test_v_and_eq_prefix_on_current_version():
     current_version = 'v=0.9.5'
     with pytest.raises(ValueError):
         VersionFilter.semver_filter(mask, versions, current_version)
+
+
+def test_valid_version_parsing_1():
+    assert(Version('0.0.1') == _parse_semver('0.0.1'))
+    assert(Version('0.0.1-dev0') == _parse_semver('0.0.1-dev0'))
+    assert(Version('0.0.1-dev0.build0') == _parse_semver('0.0.1-dev0.build0'))
+    assert(Version('0.0.1+something') == _parse_semver('0.0.1+something'))
+
+
+def test_invalid_version_parsing_1():
+    with pytest.raises(InvalidSemverError):
+        _parse_semver('0.0.1.build0')  # invalid build string
