@@ -24,7 +24,7 @@ setup(
     long_description=readme + '\n\n' + history,
     author="Dropseed",
     author_email='python@dropseed.io',
-    url='https://github.com/dropseedlabs/version_filter',
+    url='https://github.com/dropseedlabs/version-filter',
     packages=[
         'version_filter',
     ],
@@ -46,6 +46,7 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     test_suite='tests',
     tests_require=test_requirements
