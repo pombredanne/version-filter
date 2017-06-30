@@ -3,9 +3,17 @@ version-filter
 ==============
 
 
+.. image:: https://travis-ci.org/dropseedlabs/version-filter.svg?branch=master
+        :target: https://travis-ci.org/dropseedlabs/version-filter
+
 .. image:: https://img.shields.io/pypi/v/version_filter.svg
         :target: https://pypi.python.org/pypi/version_filter
 
+.. image:: https://img.shields.io/pypi/l/version_filter.svg
+        :target: https://pypi.python.org/pypi/version_filter
+
+.. image:: https://img.shields.io/pypi/pyversions/version_filter.svg
+        :target: https://pypi.python.org/pypi/version_filter
 
 
 A semantic and regex version filtering/masking library.
