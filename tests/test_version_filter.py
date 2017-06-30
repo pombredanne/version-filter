@@ -355,3 +355,27 @@ def test_v_and_eq_prefix_on_current_version():
     current_version = 'v=0.9.5'
     with pytest.raises(ValueError):
         VersionFilter.semver_filter(mask, versions, current_version)
+
+
+def test_specmask_str_1():
+    s = SpecMask('1.0.0')
+    assert str(s) == "SpecMask <'1.0.0'>"
+
+
+def test_specitemmask_str_1():
+    s = SpecItemMask('*')
+    assert str(s) == "SpecItemMask <'*'>"
+
+
+def test_specmask_valid_1():
+    assert SpecMask.is_valid('1.0.0')
+
+
+def test_specmask_valid_2():
+    assert SpecMask.is_valid('L.Y.0')
+
+def test_specmask_invalid_1():
+    assert SpecMask.is_valid('-.Y.0') is False
+
+def test_specmask_invalid_2():
+    assert SpecMask.is_valid('L.%.0') is False

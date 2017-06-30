@@ -9,6 +9,7 @@ _MAJOR = 0
 _MINOR = 1
 _PATCH = 2
 
+
 class VersionFilter(object):
 
     @staticmethod
@@ -52,26 +53,30 @@ class SpecItemMask(object):
         self.version = self.substitute(self.version, self.current_version)
         self.spec = self.get_spec()
 
-    def __unicode__(self):
-        return "SpecItemMask <{} -> >"
+    def __str__(self):
+        return "SpecItemMask <'{}{}'>".format(self.kind, self.version)
 
-    def parse(self, specitemmask):
+    def __repr__(self):
+        return self.__str__()
+
+    @classmethod
+    def parse(cls, specitemmask):
         if '*' in specitemmask:
             return '*', ''
 
-        match = self.re_specitemmask.match(specitemmask)
+        match = cls.re_specitemmask.match(specitemmask)
         if not match:
             raise ValueError('Invalid SpecItemMask: "{}"'.format(specitemmask))
 
         kind, version = match.groups()
         if _LOCK in version:
-            self.has_lock = True
+            cls.has_lock = True
 
         if _YES in version:
-            self.has_yes = True
-            self.yes_ver = YesVersion(version)
+            cls.has_yes = True
+            cls.yes_ver = YesVersion(version)
 
-        if self.has_yes:
+        if cls.has_yes:
             kind = '*'
             version = ''
 
@@ -118,23 +123,24 @@ class SpecMask(object):
     OR = "||"
 
     def __init__(self, specmask, current_version=None):
-        self.speckmask = specmask
+        self.specmask = specmask
         self.current_version = current_version
         self.op = None
         self.specs = self.itemparse(self.parse(specmask))
 
-    def parse(self, specmask):
-        if self.OR in specmask and self.AND in specmask:
-            raise ValueError('SpecMask cannot contain both {} and {} operators'.format(self.OR, self.AND))
+    @classmethod
+    def parse(cls, specmask):
+        if cls.OR in specmask and cls.AND in specmask:
+            raise ValueError('SpecMask cannot contain both {} and {} operators'.format(cls.OR, cls.AND))
 
-        if self.OR in specmask:
-            self.op = self.OR
-            specs = [x.strip() for x in specmask.split(self.OR)]
-        elif self.AND in specmask:
-            self.op = self.AND
-            specs = [x.strip() for x in specmask.split(self.AND)]
+        if cls.OR in specmask:
+            cls.op = cls.OR
+            specs = [x.strip() for x in specmask.split(cls.OR)]
+        elif cls.AND in specmask:
+            cls.op = cls.AND
+            specs = [x.strip() for x in specmask.split(cls.AND)]
         else:
-            self.op = self.AND
+            cls.op = cls.AND
             specs = [specmask.strip(), ]
 
         return specs
@@ -168,7 +174,7 @@ class SpecMask(object):
             specs = cls.parse(specmask)
         except ValueError:
             return False
-        if cls.itemparse(specs):
+        if cls.itemvalidate(specs):
             return True
         return False
 
@@ -182,7 +188,10 @@ class SpecMask(object):
         return set(self.specs) == set(other.specs)
 
     def __str__(self):
-        return "SpecMask <{}".format(self.op.join(self.specs))
+        return "SpecMask <'{}'>".format(self.specmask)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class YesVersion(object):
@@ -298,9 +307,6 @@ def _parse_semver(version):
 def _substitute_current_version(version, current_version):
     assert isinstance(current_version, semantic_version.Version)
     assert isinstance(version, str)
-
-
-    # Todo: what to do about not loosing the pre-release part?
 
     # Substitute the current version integers for LOCKs
     v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
