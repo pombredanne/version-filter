@@ -2,10 +2,11 @@
 History
 =======
 
-0.3.1 (unreleased)
+0.4.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Do two-staging parsing of version strings to be more accurate and robust
+- Fix a couple of documentation bugs with the package name vs project name
 
 
 0.3.0 (2017-05-30)
