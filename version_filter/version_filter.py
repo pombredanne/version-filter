@@ -3,6 +3,10 @@ import re
 import semantic_version
 
 
+class InvalidSemverError(ValueError):
+    pass
+
+
 class VersionFilter(object):
 
     @staticmethod
@@ -16,6 +20,8 @@ class VersionFilter(object):
             try:
                 v = _parse_semver(version)
                 v.original_string = version
+            except InvalidSemverError:
+                continue  # skip invalid semver strings
             except ValueError:
                 continue  # skip invalid semver strings
             _versions.append(v)
@@ -252,5 +258,8 @@ def _parse_semver(version):
     if isinstance(version, str):
         # strip leading 'v' and '=' chars
         cleaned = version[1:] if version.startswith('=') or version.startswith('v') else version
-        return semantic_version.Version.coerce(cleaned)
+        v = semantic_version.Version.coerce(cleaned)
+        if len(v.build) > 0:
+            raise InvalidSemverError('build fields should not be used')
+        return v
     raise ValueError('version must be either a str or a Version object')
