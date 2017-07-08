@@ -76,15 +76,38 @@ class SpecItemMask(object):
             raise ValueError('Without a current_version, SpecItemMask objects with LOCKs cannot be converted to Specs')
 
         if self.has_lock:
+
+            # Use _parse_semver but temporarily replace L and Y with 9999
+            # this is a bit hacky
+            temp_version = version[:]
+            # import pdb; pdb.set_trace()
+            temp_version = temp_version.replace(self.LOCK, '191919').replace(self.YES, '292929')
+            v = _parse_semver(str(temp_version))
+
+            if v.major == 191919:
+                v.major = self.current_version.major
+            if v.minor == 191919:
+                v.minor = self.current_version.minor
+            if v.patch == 191919:
+                v.patch = self.current_version.patch
+
+            # import pdb; pdb.set_trace()
+
+            version = str(v).replace('292929', self.YES)
+
+            # import pdb; pdb.set_trace()
+
+            # need to split by - and + first
+
             # Substitute the current version integers for LOCKs
-            v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
-            if v_parts[self.MAJOR] == self.LOCK:
-                v_parts[self.MAJOR] = self.current_version.major
-            if v_parts[self.MINOR] == self.LOCK:
-                v_parts[self.MINOR] = self.current_version.minor
-            if v_parts[self.PATCH] == self.LOCK:
-                v_parts[self.PATCH] = self.current_version.patch
-            version = '.'.join([str(x) for x in v_parts if x is not None])
+            # v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
+            # if v_parts[self.MAJOR] == self.LOCK:
+            #     v_parts[self.MAJOR] = self.current_version.major
+            # if v_parts[self.MINOR] == self.LOCK:
+            #     v_parts[self.MINOR] = self.current_version.minor
+            # if v_parts[self.PATCH] == self.LOCK:
+            #     v_parts[self.PATCH] = self.current_version.patch
+            # version = '.'.join([str(x) for x in v_parts if x is not None])
 
         if self.YES in version:
             self.has_yes = True
@@ -166,7 +189,6 @@ class SpecMask(object):
 
 class YesVersion(object):
     YES = 'Y'
-    re_prerelease_part = re.compile(r'^([0-9]+|Y)-(.*)$')
     re_num = re.compile(r'^[0-9]+|Y$')
 
     def __init__(self, version_str):
@@ -176,15 +198,19 @@ class YesVersion(object):
     def parse(self, version_str):
         """Parse a version_str into components"""
 
+        if '-' in version_str:
+            # if it looks like we have a prerelease, break it off and
+            # save it first, then process the rest
+            parts = version_str.split('-')
+            version_str = parts[0]
+            # prerelease is expected as tuple split by .
+
+            # TODO if self.prerelease is Y what then?
+
+            self.prerelease = tuple(parts[1].split('.')) if '.' in parts[1] else (parts[1],)
+
         components = version_str.split('.')
         for part in components:
-
-            prerelease_match = self.re_prerelease_part.match(part)
-            # if any of the components looks like a pre-release component ...
-            if prerelease_match:
-                self.patch, self.prerelease = prerelease_match.groups()
-                continue
-
             num_match = self.re_num.match(part)
             if not num_match:
                 raise ValueError('YesVersion components are expected to be an integer or the character "Y",'
@@ -204,6 +230,8 @@ class YesVersion(object):
 
             # if we ever get here we've gotten too many components
             raise ValueError('YesVersion received an invalid version string: {}'.format(version_str))
+
+        # import pdb; pdb.set_trace()
 
     def _int_or_y(self, s):
         try:
@@ -232,11 +260,12 @@ class YesVersion(object):
             patch_valid = 0 == version.patch
 
         if self.prerelease:
-            if self.prerelease == self.YES:
+            if self.prerelease and self.prerelease[0] == self.YES:
                 prerelease_valid = True
             else:
-                # version.prerelease is a tuple of subcomponents, check to make sure they are all present in our string
-                if all([x in self.prerelease for x in version.prerelease]):
+                # version.prerelease is a tuple of subcomponents, check to make sure they exactly match self.prerelease
+                # import pdb; pdb.set_trace()
+                if self.prerelease == version.prerelease:
                     prerelease_valid = True
                 else:
                     prerelease_valid = False
