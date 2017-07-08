@@ -351,6 +351,15 @@ def test_prerelease_lock():
     assert('3.6.1-alpine' in subset)
 
 
+def test_prerelease_lock_2():
+    mask = 'L.L.Y-L'
+    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6', '3.6.1-onbuild']
+    current_version = '3.6-alpine3.6'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('3.6.1-alpine3.6' in subset)
+
+
 def test_v_prefix_on_versions():
     mask = 'L.L.Y'
     versions = ['v0.9.5', 'v0.9.6', 'v1.0.0']
