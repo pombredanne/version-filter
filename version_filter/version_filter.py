@@ -77,37 +77,28 @@ class SpecItemMask(object):
 
         if self.has_lock:
 
-            # Use _parse_semver but temporarily replace L and Y with 9999
-            # this is a bit hacky
+            # Use _parse_semver but temporarily replace L and Y to be valid
+            # this is a bit hacky...
             temp_version = version[:]
-            # import pdb; pdb.set_trace()
-            temp_version = temp_version.replace(self.LOCK, '191919').replace(self.YES, '292929')
+            lock_placeholder = '9999990'
+            yes_placeholder = '9999991'
+            temp_version = temp_version.replace(self.LOCK, lock_placeholder).replace(self.YES, yes_placeholder)
             v = _parse_semver(str(temp_version))
 
-            if v.major == 191919:
-                v.major = self.current_version.major
-            if v.minor == 191919:
-                v.minor = self.current_version.minor
-            if v.patch == 191919:
-                v.patch = self.current_version.patch
-
-            # import pdb; pdb.set_trace()
-
-            version = str(v).replace('292929', self.YES)
-
-            # import pdb; pdb.set_trace()
-
-            # need to split by - and + first
-
             # Substitute the current version integers for LOCKs
-            # v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
-            # if v_parts[self.MAJOR] == self.LOCK:
-            #     v_parts[self.MAJOR] = self.current_version.major
-            # if v_parts[self.MINOR] == self.LOCK:
-            #     v_parts[self.MINOR] = self.current_version.minor
-            # if v_parts[self.PATCH] == self.LOCK:
-            #     v_parts[self.PATCH] = self.current_version.patch
-            # version = '.'.join([str(x) for x in v_parts if x is not None])
+            lock_placeholder_int = int(lock_placeholder)
+            if v.major == lock_placeholder_int:
+                v.major = self.current_version.major
+            if v.minor == lock_placeholder_int:
+                v.minor = self.current_version.minor
+            if v.patch == lock_placeholder_int:
+                v.patch = self.current_version.patch
+            if v.prerelease and v.prerelease[0] == lock_placeholder:
+                # prerelease is a tuple of strings
+                v.prerelease = self.current_version.prerelease
+
+            # put it back into a string as expected, with L replaced and Y intact
+            version = str(v).replace(yes_placeholder, self.YES)
 
         if self.YES in version:
             self.has_yes = True
@@ -203,10 +194,8 @@ class YesVersion(object):
             # save it first, then process the rest
             parts = version_str.split('-')
             version_str = parts[0]
-            # prerelease is expected as tuple split by .
 
-            # TODO if self.prerelease is Y what then?
-
+            # prerelease is expected as tuple of strings split by .
             self.prerelease = tuple(parts[1].split('.')) if '.' in parts[1] else (parts[1],)
 
         components = version_str.split('.')
@@ -230,8 +219,6 @@ class YesVersion(object):
 
             # if we ever get here we've gotten too many components
             raise ValueError('YesVersion received an invalid version string: {}'.format(version_str))
-
-        # import pdb; pdb.set_trace()
 
     def _int_or_y(self, s):
         try:
@@ -260,15 +247,15 @@ class YesVersion(object):
             patch_valid = 0 == version.patch
 
         if self.prerelease:
-            if self.prerelease and self.prerelease[0] == self.YES:
+            if self.prerelease[0] == self.YES:
+                # Y is always valid
+                prerelease_valid = True
+            elif self.prerelease == version.prerelease:
+                # this prerelease matches exactly
                 prerelease_valid = True
             else:
-                # version.prerelease is a tuple of subcomponents, check to make sure they exactly match self.prerelease
-                # import pdb; pdb.set_trace()
-                if self.prerelease == version.prerelease:
-                    prerelease_valid = True
-                else:
-                    prerelease_valid = False
+                # no match
+                prerelease_valid = False
         else:
             prerelease_valid = version.prerelease is ()
 
