@@ -79,19 +79,17 @@ class SpecItemMask(object):
 
             # Use _parse_semver but temporarily replace L and Y to be valid
             # this is a bit hacky...
-            temp_version = version[:]
             lock_placeholder = '9999990'
             yes_placeholder = '9999991'
-            temp_version = temp_version.replace(self.LOCK, lock_placeholder).replace(self.YES, yes_placeholder)
-            v = _parse_semver(str(temp_version))
+            parseable_version = version.replace(self.LOCK, lock_placeholder).replace(self.YES, yes_placeholder)
+            v = _parse_semver(str(parseable_version))
 
             # Substitute the current version integers for LOCKs
-            lock_placeholder_int = int(lock_placeholder)
-            if v.major == lock_placeholder_int:
+            if v.major == int(lock_placeholder):
                 v.major = self.current_version.major
-            if v.minor == lock_placeholder_int:
+            if v.minor == int(lock_placeholder):
                 v.minor = self.current_version.minor
-            if v.patch == lock_placeholder_int:
+            if v.patch == int(lock_placeholder):
                 v.patch = self.current_version.patch
             if v.prerelease and v.prerelease[0] == lock_placeholder:
                 # prerelease is a tuple of strings
