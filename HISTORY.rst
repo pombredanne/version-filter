@@ -2,7 +2,7 @@
 History
 =======
 
-0.5.0 (unreleased)
+0.5.0 (2017-07-19)
 ------------------
 
 - Add support for pre-release locking and matching pre-releases by string
