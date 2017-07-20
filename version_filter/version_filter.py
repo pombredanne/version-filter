@@ -76,15 +76,27 @@ class SpecItemMask(object):
             raise ValueError('Without a current_version, SpecItemMask objects with LOCKs cannot be converted to Specs')
 
         if self.has_lock:
+
+            # Use _parse_semver but temporarily replace L and Y to be valid
+            # this is a bit hacky...
+            lock_placeholder = '9999990'
+            yes_placeholder = '9999991'
+            parseable_version = version.replace(self.LOCK, lock_placeholder).replace(self.YES, yes_placeholder)
+            v = _parse_semver(str(parseable_version))
+
             # Substitute the current version integers for LOCKs
-            v_parts = (version.split('.') + [None, None, None])[0:3]  # make sure we have three items, 'None' padded
-            if v_parts[self.MAJOR] == self.LOCK:
-                v_parts[self.MAJOR] = self.current_version.major
-            if v_parts[self.MINOR] == self.LOCK:
-                v_parts[self.MINOR] = self.current_version.minor
-            if v_parts[self.PATCH] == self.LOCK:
-                v_parts[self.PATCH] = self.current_version.patch
-            version = '.'.join([str(x) for x in v_parts if x is not None])
+            if v.major == int(lock_placeholder):
+                v.major = self.current_version.major
+            if v.minor == int(lock_placeholder):
+                v.minor = self.current_version.minor
+            if v.patch == int(lock_placeholder):
+                v.patch = self.current_version.patch
+            if v.prerelease and v.prerelease[0] == lock_placeholder:
+                # prerelease is a tuple of strings
+                v.prerelease = self.current_version.prerelease
+
+            # put it back into a string as expected, with L replaced and Y intact
+            version = str(v).replace(yes_placeholder, self.YES)
 
         if self.YES in version:
             self.has_yes = True
@@ -166,7 +178,6 @@ class SpecMask(object):
 
 class YesVersion(object):
     YES = 'Y'
-    re_prerelease_part = re.compile(r'^([0-9]+|Y)-(.*)$')
     re_num = re.compile(r'^[0-9]+|Y$')
 
     def __init__(self, version_str):
@@ -176,15 +187,17 @@ class YesVersion(object):
     def parse(self, version_str):
         """Parse a version_str into components"""
 
+        if '-' in version_str:
+            # if it looks like we have a prerelease, break it off and
+            # save it first, then process the rest
+            parts = version_str.split('-')
+            version_str = parts[0]
+
+            # prerelease is expected as tuple of strings split by .
+            self.prerelease = tuple(parts[1].split('.')) if '.' in parts[1] else (parts[1],)
+
         components = version_str.split('.')
         for part in components:
-
-            prerelease_match = self.re_prerelease_part.match(part)
-            # if any of the components looks like a pre-release component ...
-            if prerelease_match:
-                self.patch, self.prerelease = prerelease_match.groups()
-                continue
-
             num_match = self.re_num.match(part)
             if not num_match:
                 raise ValueError('YesVersion components are expected to be an integer or the character "Y",'
@@ -232,14 +245,15 @@ class YesVersion(object):
             patch_valid = 0 == version.patch
 
         if self.prerelease:
-            if self.prerelease == self.YES:
+            if self.prerelease[0] == self.YES:
+                # Y is always valid
+                prerelease_valid = True
+            elif self.prerelease == version.prerelease:
+                # this prerelease matches exactly
                 prerelease_valid = True
             else:
-                # version.prerelease is a tuple of subcomponents, check to make sure they are all present in our string
-                if all([x in self.prerelease for x in version.prerelease]):
-                    prerelease_valid = True
-                else:
-                    prerelease_valid = False
+                # no match
+                prerelease_valid = False
         else:
             prerelease_valid = version.prerelease is ()
 

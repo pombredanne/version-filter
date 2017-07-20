@@ -121,7 +121,7 @@ def test_partial_versions_3():
     mask = 'L'
     current_version = '1'
     s = SpecItemMask(mask, current_version)
-    assert(s.spec == Spec('1'))
+    assert(s.spec == Spec('==1.0.0'))
 
 
 def test_partial_versions_4():
@@ -322,6 +322,42 @@ def test_prerelease_6():
     versions = ['0.9.5', '1.0.0-alpha.e2', '1.0.0-alpha.12', '1.0.0-alpha.58', '0.9.6', '1.0.0']
     subset = VersionFilter.semver_filter(mask, versions)
     assert(6 == len(subset))
+
+
+def test_prerelease_matching():
+    mask = 'L.L.Y-alpine'
+    versions = ['3.6', '3.6-alpine', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6', '3.6.1-onbuild']
+    current_version = '3.6-alpine'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('3.6.1-alpine' in subset)
+
+
+def test_prerelease_matching_2():
+    mask = 'L.L.Y-alpine3.6'
+    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6', '3.6.1-onbuild']
+    current_version = '3.6-alpine3.6'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('3.6.1-alpine3.6' in subset)
+
+
+def test_prerelease_lock():
+    mask = 'L.L.Y-L'
+    versions = ['3.6', '3.6-alpine', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6', '3.6.1-onbuild']
+    current_version = '3.6-alpine'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('3.6.1-alpine' in subset)
+
+
+def test_prerelease_lock_2():
+    mask = 'L.L.Y-L'
+    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6', '3.6.1-onbuild']
+    current_version = '3.6-alpine3.6'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('3.6.1-alpine3.6' in subset)
 
 
 def test_v_prefix_on_versions():
