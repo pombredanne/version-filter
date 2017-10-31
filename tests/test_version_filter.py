@@ -414,6 +414,28 @@ def test_caret():
     assert('1.1.0' in subset)
 
 
+def test_caret_babel_cli_example():
+    mask = '^L.L.L'
+    versions = [
+        '6.24.0',
+        '7.0.0-alpha.3',
+        '7.0.0-alpha.4',
+        '7.0.0-alpha.6',
+        '7.0.0-alpha.7',
+        '6.24.1',
+        '7.0.0-alpha.8',
+        '7.0.0-alpha.9',
+        '7.0.0-alpha.10',
+        '7.0.0-alpha.11',
+        '7.0.0-alpha.12',
+        '7.0.0-alpha.14',
+    ]
+    current_version = '6.24.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('6.24.1' in subset)
+
+
 def test_semver_caret():
     spec = Spec('^1.0.0')
     assert(Version('1.1.0') in spec)
