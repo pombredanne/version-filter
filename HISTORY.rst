@@ -2,7 +2,7 @@
 History
 =======
 
-0.5.1 (unreleased)
+0.5.1 (2017-12-09)
 ------------------
 
 - Use forked version of python-semanticversion to get NPM consistent caret (^) matching behavior

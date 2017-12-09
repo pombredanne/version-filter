@@ -19,7 +19,7 @@ test_requirements = [
 
 setup(
     name='version_filter',
-    version='0.5.1.dev0',
+    version='0.5.1',
     description="A semantic and regex version filtering/masking library.",
     long_description=readme + '\n\n' + history,
     author="Dropseed",
