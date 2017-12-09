@@ -1,1 +1,1 @@
-semantic_version==2.6.0
+-e git+https://github.com/paulortman/python-semanticversion.git@b25e541591d020048316dace0f7c01d0a3262592#egg=python-semanticversion
