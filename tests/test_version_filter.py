@@ -439,10 +439,10 @@ def test_caret_babel_cli_example():
 def test_semver_caret():
     spec = Spec('^1.0.0')
     assert(Version('1.1.0') in spec)
-    assert(Version('1.1.0-alpha') not in spec)  # fails
+    assert(Version('1.1.0-alpha') not in spec)
 
     assert(Version('2.0.0') not in spec)
-    assert(Version('2.0.0-alpha') not in spec)  # fails
+    assert(Version('2.0.0-alpha') not in spec)
 
 
 def test_valid_version_parsing_1():
