@@ -404,6 +404,47 @@ def test_v_and_eq_prefix_on_current_version():
         VersionFilter.semver_filter(mask, versions, current_version)
 
 
+def test_caret():
+    mask = '^1.0.0'
+    versions = ['1.0.0', '1.0.1', '1.1.0', '1.2.0-alpha', '2.0.0', '2.0.0-beta']
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('1.0.1' in subset)
+    assert('1.1.0' in subset)
+
+
+def test_caret_babel_cli_example():
+    mask = '^L.L.L'
+    versions = [
+        '6.24.0',
+        '7.0.0-alpha.3',
+        '7.0.0-alpha.4',
+        '7.0.0-alpha.6',
+        '7.0.0-alpha.7',
+        '6.24.1',
+        '7.0.0-alpha.8',
+        '7.0.0-alpha.9',
+        '7.0.0-alpha.10',
+        '7.0.0-alpha.11',
+        '7.0.0-alpha.12',
+        '7.0.0-alpha.14',
+    ]
+    current_version = '6.24.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('6.24.1' in subset)
+
+
+def test_semver_caret():
+    spec = Spec('^1.0.0')
+    assert(Version('1.1.0') in spec)
+    assert(Version('1.1.0-alpha') not in spec)
+
+    assert(Version('2.0.0') not in spec)
+    assert(Version('2.0.0-alpha') not in spec)
+
+
 def test_valid_version_parsing_1():
     assert(Version('0.0.1') == _parse_semver('0.0.1'))
     assert(Version('0.0.1-dev0') == _parse_semver('0.0.1-dev0'))
