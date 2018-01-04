@@ -13,23 +13,8 @@ class VersionFilter(object):
     def semver_filter(mask, versions, current_version=None):
         """Return a list of versions that are greater than the current version and that match the mask"""
         current = _parse_semver(current_version) if current_version else None
-        _mask = SpecMask(mask, current)
-
-        _versions = []
-        for version in versions:
-            try:
-                v = _parse_semver(version)
-                v.original_string = version
-            except InvalidSemverError:
-                continue  # skip invalid semver strings
-            except ValueError:
-                continue  # skip invalid semver strings
-            _versions.append(v)
-        _versions.sort()
-
-        selected_versions = [v for v in _versions if v in _mask]
-
-        return [v.original_string for v in selected_versions]
+        specmask = SpecMask(mask, current)
+        return specmask.match_all(versions)
 
     @staticmethod
     def regex_filter(regex_str, versions):
@@ -150,6 +135,7 @@ class SpecMask(object):
         self.specs = [SpecItemMask(s, self.current_version) for s in self.specs]
 
     def match(self, version):
+        # Todo: save the original string version to return untouched
         v = _parse_semver(version)
 
         # We implicitly require that SpecMasks disregard releases older than the current_version if it is specified
@@ -162,6 +148,24 @@ class SpecMask(object):
             return all([v in x for x in self.specs]) and v in newer_than_current
         else:
             return any([v in x for x in self.specs]) and v in newer_than_current
+
+    def match_all(self, versions):
+        """Given a list of version, return the subset that match the mask"""
+        valid_versions = []
+        for i, version in enumerate(versions):
+            try:
+                v = _parse_semver(version)
+                v.original_string = version
+                valid_versions.append(v)
+            except InvalidSemverError:
+                continue  # skip invalid semver strings
+            except ValueError:
+                continue  # skip invalid semver strings
+
+        matched_versions = sorted([v for v in valid_versions if v in self])
+
+        return [v.original_string for v in matched_versions]
+
 
     def __contains__(self, item):
         return self.match(item)
