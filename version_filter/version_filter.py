@@ -36,42 +36,41 @@ class SpecItemMask(object):
         self.specitemmask = specitemmask
         self.current_version = _parse_semver(current_version) if current_version else None
 
+        self.has_fuzzy_next = False
+        self.has_lock = False
         self.has_yes = False
         self.yes_ver = None
-        self.has_lock = False
-        self.kind, self.version = self.parse(specitemmask)
+
+        self.kind = None
+        self.version = None
+
+        self.parse(specitemmask)  # sets kind and version attributes
         self.spec = self.get_spec()
-        self.is_set_spec = False
 
     def __unicode__(self):
         return "SpecItemMask <{} -> >"
 
-    def parse(self, specitemmask):
-        if specitemmask.startswith('-'):
-            self.is_set_spec = True
-            specitemmask = specitemmask[1:]
+    def handle_yes_parsing(self):
 
-        if '*' in specitemmask:
-            return '*', ''
+        if self.YES in self.version:
+            self.has_yes = True
+            self.yes_ver = YesVersion(self.version)
 
-        match = self.re_specitemmask.match(specitemmask)
-        if not match:
-            raise ValueError('Invalid SpecItemMask: "{}"'.format(specitemmask))
+            self.kind = '*'  # Accept anything from our library spec checks, we'll special-case handle all the matching
+            self.version = ''
 
-        kind, version = match.groups()
-        if self.LOCK in version:
+    def handle_lock_parsing(self):
+        if self.LOCK in self.version:
             self.has_lock = True
 
-        if self.has_lock and not self.current_version:
-            raise ValueError('Without a current_version, SpecItemMask objects with LOCKs cannot be converted to Specs')
-
-        if self.has_lock:
+            if not self.current_version:
+                raise ValueError('Without a current_version, SpecItemMask objects with LOCKs cannot be converted to Specs')
 
             # Use _parse_semver but temporarily replace L and Y to be valid
             # this is a bit hacky...
             lock_placeholder = '9999990'
             yes_placeholder = '9999991'
-            parseable_version = version.replace(self.LOCK, lock_placeholder).replace(self.YES, yes_placeholder)
+            parseable_version = self.version.replace(self.LOCK, lock_placeholder).replace(self.YES, yes_placeholder)
             v = _parse_semver(str(parseable_version))
 
             # Substitute the current version integers for LOCKs
@@ -86,17 +85,25 @@ class SpecItemMask(object):
                 v.prerelease = self.current_version.prerelease
 
             # put it back into a string as expected, with L replaced and Y intact
-            version = str(v).replace(yes_placeholder, self.YES)
+            self.version = str(v).replace(yes_placeholder, self.YES)
 
-        if self.YES in version:
-            self.has_yes = True
-            self.yes_ver = YesVersion(version)
+    def parse(self, specitemmask):
+        if '*' in specitemmask:
+            self.kind = '*'
+            self.version = ''
+            return
 
-        if self.has_yes:
-            kind = '*'
-            version = ''
+        if specitemmask.startswith('-'):
+            self.has_fuzzy_next = True
+            specitemmask = specitemmask[1:]
 
-        return kind, version
+        match = self.re_specitemmask.match(specitemmask)
+        if not match:
+            raise ValueError('Invalid SpecItemMask: "{}"'.format(specitemmask))
+
+        self.kind, self.version = match.groups()
+        self.handle_lock_parsing()
+        self.handle_yes_parsing()
 
     def match(self, version):
         if self.current_version:
@@ -105,7 +112,7 @@ class SpecItemMask(object):
             newer_than_current = semantic_version.Spec('*')
 
         spec_match = version in self.spec and version in newer_than_current
-        if self.is_set_spec:
+        if self.has_fuzzy_next:
             raise ValueError
         if not self.has_yes:
             return spec_match
@@ -114,9 +121,10 @@ class SpecItemMask(object):
 
     def matching_versions(self, versions):
 
-        if not self.is_set_spec:
+        if not self.has_fuzzy_next:
             return [v for v in versions if v in self]
         else:
+            return []
             fabricated_versions = self.fabricate_versions(versions)
 
     def fabricate_versions(self, versions):
