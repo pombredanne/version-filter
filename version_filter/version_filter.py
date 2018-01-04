@@ -135,7 +135,6 @@ class SpecMask(object):
         self.specs = [SpecItemMask(s, self.current_version) for s in self.specs]
 
     def match(self, version):
-        # Todo: save the original string version to return untouched
         v = _parse_semver(version)
 
         # We implicitly require that SpecMasks disregard releases older than the current_version if it is specified
@@ -155,7 +154,6 @@ class SpecMask(object):
         for i, version in enumerate(versions):
             try:
                 v = _parse_semver(version)
-                v.original_string = version
                 valid_versions.append(v)
             except InvalidSemverError:
                 continue  # skip invalid semver strings
@@ -282,5 +280,6 @@ def _parse_semver(version):
             v = semantic_version.Version.coerce(cleaned)
             if len(v.build) > 0:
                 raise InvalidSemverError('build fields should not be used')
+        v.original_string = version
         return v
     raise ValueError('version must be either a str or a Version object')
