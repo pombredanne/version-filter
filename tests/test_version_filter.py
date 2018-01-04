@@ -455,3 +455,77 @@ def test_valid_version_parsing_1():
 def test_invalid_version_parsing_1():
     with pytest.raises(InvalidSemverError):
         _parse_semver('0.0.1.build0')  # invalid build string
+
+
+def test_fuzzy_next_specitemmask():
+    s = SpecItemMask('-1.0.0')
+    assert(Spec('1.0.0') == s.spec)
+    assert(s.has_fuzzy_next)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_literal1():
+    mask = '-1.0.0'
+    versions = [
+        '1.0.1',
+        '2.0.1',
+    ]
+    subset = VersionFilter.semver_filter(mask, versions)
+    assert(1 == len(subset))
+    assert('1.0.1' in subset)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_literal2():
+    mask = '-1.0.0'
+    versions = [
+        '1.1.0',
+        '2.0.1',
+    ]
+    subset = VersionFilter.semver_filter(mask, versions)
+    assert(1 == len(subset))
+    assert('1.1.0' in subset)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_literal3():
+    mask = '-1.0.0'
+    versions = [
+        '1.0.0',
+        '2.0.1',
+    ]
+    subset = VersionFilter.semver_filter(mask, versions)
+    assert(0 == len(subset))
+
+
+def test_fuzzy_next_specitemmask_matching_versions_lock1():
+    mask = '-L.0.0'
+    versions = [
+        '1.0.1',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('1.0.1' in subset)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_lock2():
+    mask = '-L.0.0'
+    versions = [
+        '1.1.0',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('1.1.0' in subset)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_lock3():
+    mask = '-L.0.0'
+    versions = [
+        '1.0.0',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(0 == len(subset))
+

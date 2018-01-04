@@ -124,14 +124,20 @@ class SpecItemMask(object):
         if not self.has_fuzzy_next:
             return [v for v in versions if v in self]
         else:
-            return []
-            fabricated_versions = self.fabricate_versions(versions)
+            return self.fuzzy_matches(versions)
 
-    def fabricate_versions(self, versions):
-        # majors = set([v.major for v in versions])
-        # minors = set([v.minor for v in versions])
-        # patches = set([v.patch for v in versions])
-        pass
+    def fuzzy_matches(self, versions):
+        fake_version = _parse_semver(str(self.version))
+        fake_version.is_fake = True
+        if fake_version not in versions:
+            versions.add(fake_version)
+
+        versions = sorted(versions)
+        matched_versions = []
+        for i, v in enumerate(versions):
+            if hasattr(v, 'is_fake') and ((i + 1) < len(versions)):
+                matched_versions.append(versions[i + 1])
+        return matched_versions
 
     def __contains__(self, item):
         return self.match(item)
