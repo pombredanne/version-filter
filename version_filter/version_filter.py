@@ -14,7 +14,7 @@ class VersionFilter(object):
         """Return a list of versions that are greater than the current version and that match the mask"""
         current = _parse_semver(current_version) if current_version else None
         specmask = SpecMask(mask, current)
-        return specmask.match_all(versions)
+        return specmask.matching_versions(versions)
 
     @staticmethod
     def regex_filter(regex_str, versions):
@@ -41,11 +41,16 @@ class SpecItemMask(object):
         self.has_lock = False
         self.kind, self.version = self.parse(specitemmask)
         self.spec = self.get_spec()
+        self.is_set_spec = False
 
     def __unicode__(self):
         return "SpecItemMask <{} -> >"
 
     def parse(self, specitemmask):
+        if specitemmask.startswith('-'):
+            self.is_set_spec = True
+            specitemmask = specitemmask[1:]
+
         if '*' in specitemmask:
             return '*', ''
 
@@ -94,11 +99,31 @@ class SpecItemMask(object):
         return kind, version
 
     def match(self, version):
-        spec_match = version in self.spec
+        if self.current_version:
+            newer_than_current = semantic_version.Spec('>{}'.format(self.current_version))
+        else:
+            newer_than_current = semantic_version.Spec('*')
+
+        spec_match = version in self.spec and version in newer_than_current
+        if self.is_set_spec:
+            raise ValueError
         if not self.has_yes:
             return spec_match
         else:
             return spec_match and version in self.yes_ver
+
+    def matching_versions(self, versions):
+
+        if not self.is_set_spec:
+            return [v for v in versions if v in self]
+        else:
+            fabricated_versions = self.fabricate_versions(versions)
+
+    def fabricate_versions(self, versions):
+        # majors = set([v.major for v in versions])
+        # minors = set([v.minor for v in versions])
+        # patches = set([v.patch for v in versions])
+        pass
 
     def __contains__(self, item):
         return self.match(item)
@@ -137,33 +162,36 @@ class SpecMask(object):
     def match(self, version):
         v = _parse_semver(version)
 
-        # We implicitly require that SpecMasks disregard releases older than the current_version if it is specified
-        if self.current_version:
-            newer_than_current = semantic_version.Spec('>{}'.format(self.current_version))
-        else:
-            newer_than_current = semantic_version.Spec('*')
-
         if self.op == self.AND:
-            return all([v in x for x in self.specs]) and v in newer_than_current
+            return all([v in x for x in self.specs])
         else:
-            return any([v in x for x in self.specs]) and v in newer_than_current
+            return any([v in x for x in self.specs])
 
-    def match_all(self, versions):
+    def matching_versions(self, versions):
         """Given a list of version, return the subset that match the mask"""
-        valid_versions = []
+        valid_versions = set()
         for i, version in enumerate(versions):
             try:
                 v = _parse_semver(version)
-                valid_versions.append(v)
+                valid_versions.add(v)
             except InvalidSemverError:
                 continue  # skip invalid semver strings
             except ValueError:
                 continue  # skip invalid semver strings
 
-        matched_versions = sorted([v for v in valid_versions if v in self])
+        versions_sets = []
+        for s in self.specs:
+            versions_sets.append(set(s.matching_versions(valid_versions)))
+
+        matched_versions = set(versions_sets[0]) # Need to initialize with something for later intersection to work
+        if self.op == self.AND:
+            for v_set in versions_sets:
+                matched_versions = matched_versions.intersection(v_set)
+        else:
+            for v_set in versions_sets:
+                matched_versions = matched_versions.union(v_set)
 
         return [v.original_string for v in matched_versions]
-
 
     def __contains__(self, item):
         return self.match(item)
