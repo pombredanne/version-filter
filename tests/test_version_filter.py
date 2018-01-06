@@ -2,7 +2,7 @@ import pytest
 
 from version_filter import VersionFilter
 from version_filter import SpecItemMask, SpecMask
-from version_filter.version_filter import _parse_semver, InvalidSemverError
+from version_filter.version_filter import _parse_semver, InvalidSemverError, YesVersion
 from semantic_version import Version, Spec
 
 
@@ -460,7 +460,7 @@ def test_invalid_version_parsing_1():
 def test_fuzzy_next_specitemmask():
     s = SpecItemMask('-1.0.0')
     assert(Spec('1.0.0') == s.spec)
-    assert(s.has_fuzzy_next)
+    assert s.has_fuzzy_next
 
 
 def test_fuzzy_next_specitemmask_matching_versions_literal1():
@@ -529,3 +529,152 @@ def test_fuzzy_next_specitemmask_matching_versions_lock3():
     subset = VersionFilter.semver_filter(mask, versions, current_version)
     assert(0 == len(subset))
 
+
+def test_get_fake_fuzzy_versions1():
+    y = YesVersion('Y.0.0')
+    versions = [
+        '1.0.0',
+        '1.0.1',
+        '2.0.1',
+        '2.1.0'
+    ]
+    versions = [_parse_semver(x) for x in versions]
+
+    result = y.get_fake_fuzzy_versions(versions)
+    assert(1 == len(result))
+    assert(_parse_semver('2.0.0') in result)
+
+
+def test_get_fake_fuzzy_versions2():
+    y = YesVersion('Y.Y.0')
+    versions = [
+        '1.0.0',
+        '1.0.1',
+        '1.1.1',
+        '2.0.1',
+        '2.1.1'
+    ]
+    versions = [_parse_semver(x) for x in versions]
+
+    result = y.get_fake_fuzzy_versions(versions)
+    assert(3 == len(result))
+    assert(_parse_semver('1.1.0') in result)
+    assert(_parse_semver('2.0.0') in result)
+    assert(_parse_semver('2.1.0') in result)
+
+
+def test_get_fake_fuzzy_versions3():
+    y = YesVersion('1.0.0')
+    versions = [
+        '1.0.0',
+        '1.0.1',
+        '1.1.1',
+        '2.0.1',
+        '2.1.1'
+    ]
+    versions = [_parse_semver(x) for x in versions]
+
+    result = y.get_fake_fuzzy_versions(versions)
+    assert(0 == len(result))
+
+
+def test_get_fake_fuzzy_versions4():
+    y = YesVersion('Y.Y.Y')
+    versions = [
+        '1.0.0',
+        '1.0.1',
+        '1.0.5',
+        '1.1.1',
+        '2.0.1',
+        '2.1.1'
+    ]
+    versions = [_parse_semver(x) for x in versions]
+
+    result = y.get_fake_fuzzy_versions(versions)
+    assert(3 == len(result))
+    assert(_parse_semver('1.0.2') in result)
+    assert(_parse_semver('1.0.3') in result)
+    assert(_parse_semver('1.0.4') in result)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_yes1():
+    mask = '-Y.0.0'
+    versions = [
+        '1.0.1',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('1.0.1' in subset)  # how could the 1.0.0 current version exists if this is the first version in list
+    assert('2.0.1' in subset)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_yes2():
+    mask = '-Y.0.0'
+    versions = [
+        '1.1.0',
+        '1.2.0',
+        '1.3.0',
+        '2.0.1',
+        '3.1.2',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(3 == len(subset))
+    assert('1.1.0' in subset)
+    assert('2.0.1' in subset)
+    assert('3.1.2' in subset)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_yes3():
+    mask = '-Y.0.0'
+    versions = [
+        '1.0.0',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('2.0.1' in subset)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_yes4():
+    mask = '-Y.Y.0'
+    versions = [
+        '1.0.0',
+        '1.1.0',
+        '1.1.1',
+        '1.2.1',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('1.2.1' in subset)
+    assert('2.0.1' in subset)
+
+
+def test_fuzzy_next_specitemmask_matching_versions_yes5():
+    mask = '-Y.0.0'
+    versions = [
+        '1.0.0',
+        '1.1.0',
+        '1.1.1',
+        '1.2.1',
+        '2.0.1',
+    ]
+    current_version = '1.2.1'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('2.0.1' in subset)
+
+
+def test_fuzzy_next_specitemmask_with_range_1():
+    """Mixing semver range operators and fuzzy matching is not allowed"""
+    mask = '-^1.0.0'
+    versions = [
+        '1.0.0',
+    ]
+    with pytest.raises(ValueError):
+        VersionFilter.semver_filter(mask, versions)

@@ -50,8 +50,11 @@ class SpecItemMask(object):
     def __unicode__(self):
         return "SpecItemMask <{} -> >"
 
-    def handle_yes_parsing(self):
+    def __repr__(self):
+        rep = ('-' if self.has_fuzzy_next else '') + self.kind + self.version
+        return "SpecItemMask <{}>".format(rep)
 
+    def handle_yes_parsing(self):
         if self.YES in self.version:
             self.has_yes = True
             self.yes_ver = YesVersion(self.version)
@@ -64,7 +67,8 @@ class SpecItemMask(object):
             self.has_lock = True
 
             if not self.current_version:
-                raise ValueError('Without a current_version, SpecItemMask objects with LOCKs cannot be converted to Specs')
+                raise ValueError('Without a current_version, SpecItemMask objects with LOCKs ' 
+                                 'cannot be converted to Specs')
 
             # Use _parse_semver but temporarily replace L and Y to be valid
             # this is a bit hacky...
@@ -106,12 +110,7 @@ class SpecItemMask(object):
         self.handle_yes_parsing()
 
     def match(self, version):
-        if self.current_version:
-            newer_than_current = semantic_version.Spec('>{}'.format(self.current_version))
-        else:
-            newer_than_current = semantic_version.Spec('*')
-
-        spec_match = version in self.spec and version in newer_than_current
+        spec_match = version in self.spec and version in self.newer_than_current()
         if self.has_fuzzy_next:
             raise ValueError
         if not self.has_yes:
@@ -119,19 +118,37 @@ class SpecItemMask(object):
         else:
             return spec_match and version in self.yes_ver
 
-    def matching_versions(self, versions):
+    def newer_than_current(self):
+        if self.current_version:
+            newer_than_current = semantic_version.Spec('>{}'.format(self.current_version))
+        else:
+            newer_than_current = semantic_version.Spec('*')
 
+        return newer_than_current
+
+    def matching_versions(self, versions):
         if not self.has_fuzzy_next:
             return [v for v in versions if v in self]
         else:
-            return self.fuzzy_matches(versions)
+            return [v for v in self.fuzzy_matches(versions) if v in self.newer_than_current()]
 
     def fuzzy_matches(self, versions):
-        fake_version = _parse_semver(str(self.version))
-        fake_version.is_fake = True
-        if fake_version not in versions:
-            versions.add(fake_version)
+        if self.kind not in ['', '*']:
+            raise ValueError('SpecItem {} operator kind needs to be "" or "*", was "{}". '.format(self, self.kind) +
+                             'Unable to use a fuzzy match mode')
+        if not self.has_yes:
+            # specs with a lock or hard coded numbers can only result in a single fake version
+            fake_version = _parse_semver(str(self.version), makefake=True)
+            if fake_version not in versions:
+                versions.add(fake_version)
+        else:
+            # versions with a YES require generating all the possible valid fake versions
+            fake_versions = self.yes_ver.get_fake_fuzzy_versions(versions)
 
+            # combine fake and real versions into one set
+            versions = set(versions).union(set(fake_versions))
+
+        # For each fake version in the sorted list, get the next real version if it exists
         versions = sorted(versions)
         matched_versions = []
         for i, v in enumerate(versions):
@@ -197,7 +214,7 @@ class SpecMask(object):
         for s in self.specs:
             versions_sets.append(set(s.matching_versions(valid_versions)))
 
-        matched_versions = set(versions_sets[0]) # Need to initialize with something for later intersection to work
+        matched_versions = set(versions_sets[0])  # Need to initialize with something for later intersection to work
         if self.op == self.AND:
             for v_set in versions_sets:
                 matched_versions = matched_versions.intersection(v_set)
@@ -220,12 +237,43 @@ class SpecMask(object):
         return "SpecMask <{}".format(self.op.join(self.specs))
 
 
+class YesVersionComponent(object):
+    def __init__(self, str_val=None):
+        self.component = str_val
+
+    def __eq__(self, other):
+        if not self.component:
+            return 0 == other  # if uninitialized, only match against zeroes
+        if self.component == YesVersion.YES:
+            return True  # if it's a YES, it matches everything
+
+        try:
+            value = int(self.component)
+        except ValueError:
+            return False
+
+        return value == other  # if a sucessfully parsed zero, it must be equivilant
+
+    def val(self):
+        if not self.component:
+            return 0
+        if self.component == YesVersion.YES:
+            return None
+        else:
+            return int(self.component)
+
+    @property
+    def is_yes(self):
+        return self.component == YesVersion.YES
+
+
 class YesVersion(object):
     YES = 'Y'
     re_num = re.compile(r'^[0-9]+|Y$')
 
     def __init__(self, version_str):
-        self.major, self.minor, self.patch, self.prerelease = None, None, None, None
+        self.major, self.minor, self.patch = YesVersionComponent(), YesVersionComponent(), YesVersionComponent()
+        self.prerelease = None
         self.parse(version_str)
 
     def parse(self, version_str):
@@ -247,47 +295,60 @@ class YesVersion(object):
                 raise ValueError('YesVersion components are expected to be an integer or the character "Y",'
                                  'not: {}'.format(version_str))
 
-            if self.major is None:
-                self.major = self._int_or_y(part)
+            if self.major.component is None:
+                self.major = YesVersionComponent(part)
                 continue
 
-            if self.minor is None:
-                self.minor = self._int_or_y(part)
+            if self.minor.component is None:
+                self.minor = YesVersionComponent(part)
                 continue
 
-            if self.patch is None:
-                self.patch = self._int_or_y(part)
+            if self.patch.component is None:
+                self.patch = YesVersionComponent(part)
                 continue
 
             # if we ever get here we've gotten too many components
             raise ValueError('YesVersion received an invalid version string: {}'.format(version_str))
 
-    def _int_or_y(self, s):
-        try:
-            ret = int(s)
-        except ValueError:
-            ret = self.YES
-        return ret
+    def get_fake_fuzzy_versions(self, versions):
+        """Given the 'Y' mask, and a set of versions, return a list of all the versions that mask would expect to find
+           in the range of versions, but do not actually exists."""
+        fake_matches = set()
 
-    def match(self, version):
-        """version matches if all non-YES fields are the same integer number, YES fields match any integer"""
-        version = _parse_semver(version)
-
-        if self.major:
-            major_valid = self.major == version.major if self.major != self.YES else True
+        if not self.major.is_yes:
+            major_versions = [self.major.val()]
         else:
-            major_valid = 0 == version.major
+            major_versions = sorted(set([v.major for v in versions]))
 
-        if self.minor:
-            minor_valid = self.minor == version.minor if self.minor != self.YES else True
-        else:
-            minor_valid = 0 == version.minor
+        for major in range(min(major_versions), max(major_versions) + 1):
+            if not self.minor.is_yes:
+                minor_versions = [self.minor.val()]
+            else:
+                minor_versions = sorted(set([v.minor for v in versions if v.major == major]))
 
-        if self.patch:
-            patch_valid = self.patch == version.patch if self.patch != self.YES else True
-        else:
-            patch_valid = 0 == version.patch
+            for minor in range(min(minor_versions), max(minor_versions) + 1):
+                if not self.patch.is_yes:
+                    patch_versions = [self.patch.val()]
+                else:
+                    patch_versions = sorted(set([v.patch for v in versions if v.major == major and v.minor == minor]))
 
+                for patch in range(min(patch_versions), max(patch_versions) + 1):
+                    fake = _parse_semver("{}.{}.{}".format(major, minor, patch), makefake=True)
+                    if fake not in versions:
+                        fake_matches.add(fake)
+
+        return fake_matches
+
+    def major_valid(self, version):
+        return self.major == version.major
+
+    def minor_valid(self, version):
+        return self.minor == version.minor
+
+    def patch_valid(self, version):
+        return self.patch == version.patch
+
+    def prerelease_valid(self, version):
         if self.prerelease:
             if self.prerelease[0] == self.YES:
                 # Y is always valid
@@ -301,7 +362,16 @@ class YesVersion(object):
         else:
             prerelease_valid = version.prerelease is ()
 
-        return all([major_valid, minor_valid, patch_valid, prerelease_valid])
+        return prerelease_valid
+
+    def match(self, version):
+        """version matches if all non-YES fields are the same integer number, YES fields match any integer"""
+        version = _parse_semver(version)
+
+        return all([self.major_valid(version),
+                    self.minor_valid(version),
+                    self.patch_valid(version),
+                    self.prerelease_valid(version)])
 
     def __contains__(self, item):
         return self.match(item)
@@ -310,9 +380,9 @@ class YesVersion(object):
         return ".".join([str(x) for x in [self.major, self.minor, self.patch] if x])
 
 
-def _parse_semver(version):
+def _parse_semver(version, makefake=False):
     if isinstance(version, semantic_version.Version):
-        return version
+        return _make_fake_version(version) if makefake else version
     if isinstance(version, str):
         # strip leading 'v' and '=' chars
         cleaned = version[1:] if version.startswith('=') or version.startswith('v') else version
@@ -323,5 +393,10 @@ def _parse_semver(version):
             if len(v.build) > 0:
                 raise InvalidSemverError('build fields should not be used')
         v.original_string = version
-        return v
+        return _make_fake_version(v) if makefake else v
     raise ValueError('version must be either a str or a Version object')
+
+
+def _make_fake_version(version):
+    version.is_fake = True
+    return version
