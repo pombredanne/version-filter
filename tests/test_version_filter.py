@@ -678,3 +678,11 @@ def test_fuzzy_next_specitemmask_with_range_1():
     ]
     with pytest.raises(ValueError):
         VersionFilter.semver_filter(mask, versions)
+
+
+def test_fuzzy_example():
+    versions = ['1.0.0', '2.0.0', '3.0.1']
+    current_version = '2.0.0'
+    assert VersionFilter.semver_filter('Y.0.0', versions, current_version) == []
+    # but with fuzzy ...
+    assert VersionFilter.semver_filter('-Y.0.0', versions, current_version) == ['3.0.1']

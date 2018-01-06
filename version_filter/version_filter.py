@@ -382,7 +382,9 @@ class YesVersion(object):
 
 def _parse_semver(version, makefake=False):
     if isinstance(version, semantic_version.Version):
-        return _make_fake_version(version) if makefake else version
+        if makefake:
+            version.is_fake = True
+        return version
     if isinstance(version, str):
         # strip leading 'v' and '=' chars
         cleaned = version[1:] if version.startswith('=') or version.startswith('v') else version
@@ -393,10 +395,7 @@ def _parse_semver(version, makefake=False):
             if len(v.build) > 0:
                 raise InvalidSemverError('build fields should not be used')
         v.original_string = version
-        return _make_fake_version(v) if makefake else v
+        if makefake:
+            v.is_fake = True
+        return v
     raise ValueError('version must be either a str or a Version object')
-
-
-def _make_fake_version(version):
-    version.is_fake = True
-    return version
