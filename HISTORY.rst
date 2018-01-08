@@ -2,7 +2,7 @@
 History
 =======
 
-0.6.0 (unreleased)
+0.6.0 (2018-01-08)
 ------------------
 
 - Enable the "Next Best" matching algorithm to find next best releases when anticipated releases do not exist
