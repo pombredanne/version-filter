@@ -110,6 +110,10 @@ class SpecItemMask(object):
         self.handle_lock_parsing()
         self.handle_yes_parsing()
 
+        if self.has_next_best and self.kind not in ['', '*']:
+            raise ValueError('SpecItem {} operator kind needs to be "" or "*", was "{}". '.format(self, self.kind) +
+                             'Unable to use a next_best match mode')
+
     def match(self, version):
         spec_match = version in self.spec and version in self.newer_than_current()
         if self.has_next_best:
@@ -134,9 +138,6 @@ class SpecItemMask(object):
             return [v for v in self.next_best_matches(versions) if v in self.newer_than_current()]
 
     def next_best_matches(self, versions):
-        if self.kind not in ['', '*']:
-            raise ValueError('SpecItem {} operator kind needs to be "" or "*", was "{}". '.format(self, self.kind) +
-                             'Unable to use a next_best match mode')
         if not self.has_yes:
             # specs with a lock or hard coded numbers can only result in a single fake version
             fake_version = _parse_semver(str(self.version), makefake=True)
