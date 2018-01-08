@@ -37,7 +37,7 @@ class SpecItemMask(object):
         self.specitemmask = specitemmask
         self.current_version = _parse_semver(current_version) if current_version else None
 
-        self.has_fuzzy_next = False
+        self.has_next_best = False
         self.has_lock = False
         self.has_yes = False
         self.yes_ver = None
@@ -52,7 +52,7 @@ class SpecItemMask(object):
         return "SpecItemMask <{} -> >"
 
     def __repr__(self):
-        rep = ('-' if self.has_fuzzy_next else '') + self.kind + self.version
+        rep = ('-' if self.has_next_best else '') + self.kind + self.version
         return "SpecItemMask <{}>".format(rep)
 
     def handle_yes_parsing(self):
@@ -99,7 +99,7 @@ class SpecItemMask(object):
             return
 
         if specitemmask.startswith('-'):
-            self.has_fuzzy_next = True
+            self.has_next_best = True
             specitemmask = specitemmask[1:]
 
         match = self.re_specitemmask.match(specitemmask)
@@ -112,7 +112,7 @@ class SpecItemMask(object):
 
     def match(self, version):
         spec_match = version in self.spec and version in self.newer_than_current()
-        if self.has_fuzzy_next:
+        if self.has_next_best:
             raise ValueError
         if not self.has_yes:
             return spec_match
@@ -128,15 +128,15 @@ class SpecItemMask(object):
         return newer_than_current
 
     def matching_versions(self, versions):
-        if not self.has_fuzzy_next:
+        if not self.has_next_best:
             return [v for v in versions if v in self]
         else:
-            return [v for v in self.fuzzy_matches(versions) if v in self.newer_than_current()]
+            return [v for v in self.next_best_matches(versions) if v in self.newer_than_current()]
 
-    def fuzzy_matches(self, versions):
+    def next_best_matches(self, versions):
         if self.kind not in ['', '*']:
             raise ValueError('SpecItem {} operator kind needs to be "" or "*", was "{}". '.format(self, self.kind) +
-                             'Unable to use a fuzzy match mode')
+                             'Unable to use a next_best match mode')
         if not self.has_yes:
             # specs with a lock or hard coded numbers can only result in a single fake version
             fake_version = _parse_semver(str(self.version), makefake=True)
@@ -144,7 +144,7 @@ class SpecItemMask(object):
                 versions.add(fake_version)
         else:
             # versions with a YES require generating all the possible valid fake versions
-            fake_versions = self.yes_ver.get_fake_fuzzy_versions(versions)
+            fake_versions = self.yes_ver.get_next_best_versions(versions)
 
             # combine fake and real versions into one set
             versions = set(versions).union(set(fake_versions))
@@ -311,7 +311,7 @@ class YesVersion(object):
             # if we ever get here we've gotten too many components
             raise ValueError('YesVersion received an invalid version string: {}'.format(version_str))
 
-    def get_fake_fuzzy_versions(self, versions):
+    def get_next_best_versions(self, versions):
         """Given the 'Y' mask, and a set of versions, return a list of all the versions that mask would expect to find
            in the range of versions, but do not actually exists."""
         fake_matches = set()

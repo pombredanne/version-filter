@@ -5,7 +5,7 @@ History
 0.6.0 (unreleased)
 ------------------
 
-- Enable the "Fuzzy Next" matching algorithm to find next best releases when anticipated releases do not exist
+- Enable the "Next Best" matching algorithm to find next best releases when anticipated releases do not exist
 
 
 0.5.1 (2017-12-09)

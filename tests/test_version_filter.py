@@ -458,13 +458,13 @@ def test_invalid_version_parsing_1():
         _parse_semver('0.0.1.build0')  # invalid build string
 
 
-def test_fuzzy_next_specitemmask():
+def test_next_best_specitemmask():
     s = SpecItemMask('-1.0.0')
     assert(Spec('1.0.0') == s.spec)
-    assert s.has_fuzzy_next
+    assert s.has_next_best
 
 
-def test_fuzzy_next_specitemmask_matching_versions_literal1():
+def test_next_best_specitemmask_matching_versions_literal1():
     mask = '-1.0.0'
     versions = [
         '1.0.1',
@@ -475,7 +475,7 @@ def test_fuzzy_next_specitemmask_matching_versions_literal1():
     assert('1.0.1' in subset)
 
 
-def test_fuzzy_next_specitemmask_matching_versions_literal2():
+def test_next_best_specitemmask_matching_versions_literal2():
     mask = '-1.0.0'
     versions = [
         '1.1.0',
@@ -486,7 +486,7 @@ def test_fuzzy_next_specitemmask_matching_versions_literal2():
     assert('1.1.0' in subset)
 
 
-def test_fuzzy_next_specitemmask_matching_versions_literal3():
+def test_next_best_specitemmask_matching_versions_literal3():
     mask = '-1.0.0'
     versions = [
         '1.0.0',
@@ -496,7 +496,7 @@ def test_fuzzy_next_specitemmask_matching_versions_literal3():
     assert(0 == len(subset))
 
 
-def test_fuzzy_next_specitemmask_matching_versions_lock1():
+def test_next_best_specitemmask_matching_versions_lock1():
     mask = '-L.0.0'
     versions = [
         '1.0.1',
@@ -508,7 +508,7 @@ def test_fuzzy_next_specitemmask_matching_versions_lock1():
     assert('1.0.1' in subset)
 
 
-def test_fuzzy_next_specitemmask_matching_versions_lock2():
+def test_next_best_specitemmask_matching_versions_lock2():
     mask = '-L.0.0'
     versions = [
         '1.1.0',
@@ -520,7 +520,7 @@ def test_fuzzy_next_specitemmask_matching_versions_lock2():
     assert('1.1.0' in subset)
 
 
-def test_fuzzy_next_specitemmask_matching_versions_lock3():
+def test_next_best_specitemmask_matching_versions_lock3():
     mask = '-L.0.0'
     versions = [
         '1.0.0',
@@ -531,7 +531,7 @@ def test_fuzzy_next_specitemmask_matching_versions_lock3():
     assert(0 == len(subset))
 
 
-def test_get_fake_fuzzy_versions1():
+def test_get_next_best_versions1():
     y = YesVersion('Y.0.0')
     versions = [
         '1.0.0',
@@ -541,12 +541,12 @@ def test_get_fake_fuzzy_versions1():
     ]
     versions = [_parse_semver(x) for x in versions]
 
-    result = y.get_fake_fuzzy_versions(versions)
+    result = y.get_next_best_versions(versions)
     assert(1 == len(result))
     assert(_parse_semver('2.0.0') in result)
 
 
-def test_get_fake_fuzzy_versions2():
+def test_get_next_best_versions2():
     y = YesVersion('Y.Y.0')
     versions = [
         '1.0.0',
@@ -557,14 +557,14 @@ def test_get_fake_fuzzy_versions2():
     ]
     versions = [_parse_semver(x) for x in versions]
 
-    result = y.get_fake_fuzzy_versions(versions)
+    result = y.get_next_best_versions(versions)
     assert(3 == len(result))
     assert(_parse_semver('1.1.0') in result)
     assert(_parse_semver('2.0.0') in result)
     assert(_parse_semver('2.1.0') in result)
 
 
-def test_get_fake_fuzzy_versions3():
+def test_get_next_best_versions3():
     y = YesVersion('1.0.0')
     versions = [
         '1.0.0',
@@ -575,11 +575,11 @@ def test_get_fake_fuzzy_versions3():
     ]
     versions = [_parse_semver(x) for x in versions]
 
-    result = y.get_fake_fuzzy_versions(versions)
+    result = y.get_next_best_versions(versions)
     assert(0 == len(result))
 
 
-def test_get_fake_fuzzy_versions4():
+def test_get_next_best_versions4():
     y = YesVersion('Y.Y.Y')
     versions = [
         '1.0.0',
@@ -591,14 +591,14 @@ def test_get_fake_fuzzy_versions4():
     ]
     versions = [_parse_semver(x) for x in versions]
 
-    result = y.get_fake_fuzzy_versions(versions)
+    result = y.get_next_best_versions(versions)
     assert(3 == len(result))
     assert(_parse_semver('1.0.2') in result)
     assert(_parse_semver('1.0.3') in result)
     assert(_parse_semver('1.0.4') in result)
 
 
-def test_fuzzy_next_specitemmask_matching_versions_yes1():
+def test_next_best_specitemmask_matching_versions_yes1():
     mask = '-Y.0.0'
     versions = [
         '1.0.1',
@@ -611,7 +611,7 @@ def test_fuzzy_next_specitemmask_matching_versions_yes1():
     assert('2.0.1' in subset)
 
 
-def test_fuzzy_next_specitemmask_matching_versions_yes2():
+def test_next_best_specitemmask_matching_versions_yes2():
     mask = '-Y.0.0'
     versions = [
         '1.1.0',
@@ -628,7 +628,7 @@ def test_fuzzy_next_specitemmask_matching_versions_yes2():
     assert('3.1.2' in subset)
 
 
-def test_fuzzy_next_specitemmask_matching_versions_yes3():
+def test_next_best_specitemmask_matching_versions_yes3():
     mask = '-Y.0.0'
     versions = [
         '1.0.0',
@@ -640,7 +640,7 @@ def test_fuzzy_next_specitemmask_matching_versions_yes3():
     assert('2.0.1' in subset)
 
 
-def test_fuzzy_next_specitemmask_matching_versions_yes4():
+def test_next_best_specitemmask_matching_versions_yes4():
     mask = '-Y.Y.0'
     versions = [
         '1.0.0',
@@ -656,7 +656,7 @@ def test_fuzzy_next_specitemmask_matching_versions_yes4():
     assert('2.0.1' in subset)
 
 
-def test_fuzzy_next_specitemmask_matching_versions_yes5():
+def test_next_best_specitemmask_matching_versions_yes5():
     mask = '-Y.0.0'
     versions = [
         '1.0.0',
@@ -671,8 +671,8 @@ def test_fuzzy_next_specitemmask_matching_versions_yes5():
     assert('2.0.1' in subset)
 
 
-def test_fuzzy_next_specitemmask_with_range_1():
-    """Mixing semver range operators and fuzzy matching is not allowed"""
+def test_next_best_specitemmask_with_range_1():
+    """Mixing semver range operators and next_best matching is not allowed"""
     mask = '-^1.0.0'
     versions = [
         '1.0.0',
@@ -681,9 +681,9 @@ def test_fuzzy_next_specitemmask_with_range_1():
         VersionFilter.semver_filter(mask, versions)
 
 
-def test_fuzzy_example():
+def test_next_best_example():
     versions = ['1.0.0', '2.0.0', '3.0.1']
     current_version = '2.0.0'
     assert VersionFilter.semver_filter('Y.0.0', versions, current_version) == []
-    # but with fuzzy ...
+    # but with next_best ...
     assert VersionFilter.semver_filter('-Y.0.0', versions, current_version) == ['3.0.1']
