@@ -46,7 +46,7 @@ major, minor, patch or pre-release components of version'
 'Next Best' Matching Extension
 ...............................
 
-Some packages fail to ever publicly release expected semantic version.  Take for instance a package that never releases
+Some packages fail to ever publicly release expected semantic versions.  Take for instance a package that never releases
 a ``'2.0.0'`` version, but instead has ``'2.0.1'`` as the first available version of the 2 series.  To be able to handle
 that convention deviation without resorting to ranges or wildcards and thus losing some of the power of the Lock and Yes
 extensions you can prefix a mask with the hyphen (``-``) character.  This allows the algorithm to anticipate what
