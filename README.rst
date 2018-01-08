@@ -43,6 +43,17 @@ Mask Yes Extension
 Yes (``Y``) are used to provide wildcard acceptance of any value in the position of the ``Y``.  It can be used in the
 major, minor, patch or pre-release components of version'
 
+'Fuzzy Next' Matching Extension
+...............................
+
+Some packages fail to ever publicly release expected semantic version.  Take for instance a package that never releases
+a ``'2.0.0'`` version, but instead has ``'2.0.1'`` as the first available version of the 2 series.  To be able to handle
+that convention deviation without resorting to ranges or wildcards and thus losing some of the power of the Lock and Yes
+extensions you can prefix a mask with the hyphen (``-``) character.  This allows the algorithm to anticipate what
+releases "should" get released, and select the "next" release if the anticipated release never appears.  For instance,
+the mask ``'-Y.0.0'`` anticipates that the ``'2.0.0'`` release will be made, but will return the ``2.0.1`` if the
+``2.0.0`` release never appears.
+
 Boolean AND and OR
 ..................
 
@@ -57,6 +68,8 @@ Some common examples:
 * ``'1.Y.0'`` # return only those minor versions that are of major release 1
 * ``'L.Y.0'`` # return only those minor versions that are greater than the currently installed version, but in the same
   major release
+* ``'-Y.0.0'`` # return only major versions that are greater than the currently installed version with "fuzzy next"
+  matching enabled (will return a 2.0.1 release if 2.0.0 is never released)
 * ``'L.L.Y'`` # return only those patch versions that are greater than the currently installed version, but in the same
   major and minor release
 * ``'Y.Y.Y'`` # return all major, minor and patch versions
