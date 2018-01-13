@@ -38,9 +38,11 @@ def test_specitemmask_lock5():
     s = SpecItemMask('L1.L999.L', current_version=Version('1.8.3'))
     assert(Spec('2.1007.3') == s.spec)
 
+
 def test_specitemmask_lock6():
     with pytest.raises(ValueError):
         SpecItemMask('L-1.L999.L', current_version=Version('1.8.3'))
+
 
 def test_specitemmask_yes1():
     s = SpecItemMask('Y.Y.0', current_version=Version('1.8.3'))
@@ -674,7 +676,7 @@ def test_next_best_specitemmask_matching_versions_yes3():
     assert('3.1.2' in subset)
 
 
-def test_next_best_specitemmask_matching_versions_yes3():
+def test_next_best_specitemmask_matching_versions_yes4():
     mask = '-Y.0.0'
     versions = [
         '1.0.0',
@@ -686,7 +688,7 @@ def test_next_best_specitemmask_matching_versions_yes3():
     assert('2.0.1' in subset)
 
 
-def test_next_best_specitemmask_matching_versions_yes4():
+def test_next_best_specitemmask_matching_versions_yes5():
     mask = '-Y.Y.0'
     versions = [
         '1.0.0',
@@ -702,7 +704,7 @@ def test_next_best_specitemmask_matching_versions_yes4():
     assert('2.0.1' in subset)
 
 
-def test_next_best_specitemmask_matching_versions_yes5():
+def test_next_best_specitemmask_matching_versions_yes6():
     mask = '-Y.0.0'
     versions = [
         '1.0.0',
@@ -735,7 +737,7 @@ def test_next_best_example():
     assert VersionFilter.semver_filter('-Y.0.0', versions, current_version) == ['3.0.1']
 
 
-def test_greater_than_current_major():
+def test_greater_than_next_major():
     mask = '>=L1.0.0'
     versions = ['1.0.0', '1.0.1', '1.1.0', '1.2.0', '2.0.0', '2.0.1', '3.0.0']
     current_version = '1.0.0'
@@ -745,3 +747,12 @@ def test_greater_than_current_major():
     assert('2.0.1' in subset)
     assert('3.0.0' in subset)
 
+
+def test_in_next_major():
+    mask = 'L1.Y.Y'
+    versions = ['1.0.0', '1.0.1', '1.1.0', '1.2.0', '2.0.0', '2.0.1', '3.0.0']
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('2.0.0' in subset)
+    assert('2.0.1' in subset)
