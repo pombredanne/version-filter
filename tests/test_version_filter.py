@@ -446,6 +446,22 @@ def test_semver_caret():
     assert(Version('2.0.0-alpha') not in spec)
 
 
+def test_semver_caret_with_zero_major():
+    spec = Spec('^0.3.0')
+    assert(Version('0.4.0') not in spec)
+    assert(Version('0.3.1') in spec)
+    assert(Version('1.3.0') not in spec)
+
+
+def test_semver_caret_with_locks():
+    mask = '^L.L.L'
+    versions = ['0.3.0', '0.3.1', '0.4.0', '1.0.0', '1.3.0']
+    current_version = '0.3.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.3.1' in subset)
+
+
 def test_valid_version_parsing_1():
     assert(Version('0.0.1') == _parse_semver('0.0.1'))
     assert(Version('0.0.1-dev0') == _parse_semver('0.0.1-dev0'))
