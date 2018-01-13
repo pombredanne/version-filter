@@ -35,7 +35,9 @@ Mask Lock Extension
 
 Locks (``L``) are used as a substitution character in the mask for the major, minor and patch components where you want
 to limit the version filter to just those versions where it has the same value as the given current_version.  If a ``L``
-is present anywhere in the mask, a current_version parameter must also be provided.
+is present anywhere in the mask, a current_version parameter must also be provided.  By giving a positive integer
+immediately following the 'L' you can express "lock + int" behavior.  For example, ``L1`` in a mask states "the current
+version number + 1" for any given position.
 
 Mask Yes Extension
 ..................
@@ -68,6 +70,8 @@ Some common examples:
 * ``'1.Y.0'`` # return only those minor versions that are of major release 1
 * ``'L.Y.0'`` # return only those minor versions that are greater than the currently installed version, but in the same
   major release
+* ``'>=L1.0.0'`` # return every minor and patch version for major versions at least 1 greater that the current major
+  version
 * ``'-Y.0.0'`` # return only major versions that are greater than the currently installed version with "next best"
   matching enabled (will return a 2.0.1 release if 2.0.0 is never released)
 * ``'L.L.Y'`` # return only those patch versions that are greater than the currently installed version, but in the same

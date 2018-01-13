@@ -24,6 +24,120 @@ class VersionFilter(object):
         return [v for v in versions if regex.search(v)]
 
 
+class Component(object):
+    lock_re = re.compile(r'L|L[0-9]+')
+    lockint_re = re.compile(r'L([0-9]+)')
+    yes_re = re.compile(r'Y')
+    def __init__(self, comp):
+        self.orig = comp
+        self.value = 0
+        self.lock = False
+        self.yes = False
+        match = self.lock_re.match(comp)
+        if match:
+            self.lock = True
+            match = self.lockint_re.match(comp)
+            if match:
+                self.value += int(match.group(1))
+            return
+
+        if self.yes_re.match(comp):
+            self.yes = True
+            return
+
+    def __str__(self):
+        return '{}'.format(self.orig)
+
+    def yesval(self):
+        if self.yes:
+            return str(9999991)
+        return self.orig
+
+    def lockval(self, ref):
+        if self.lock:
+            try:
+                return str(ref + self.value)
+            except TypeError:  # this can happen especially for pre-releases which can be strings
+                return ref
+        return self.orig
+
+
+class SemverComponents(object):
+    def __init__(self, major, minor, patch, other):
+        self.value = 0
+
+        self.major = Component(major) if major else ''
+        self.minor = Component(minor) if minor else ''
+        self.patch = Component(patch) if patch else ''
+        self.other = Component(other) if other else ''
+
+    @classmethod
+    def parse(cls, version_str):
+
+        # Try to match as much of the version string as possible.  If we can match three parts first, then two, then
+        # one.  Anything we don't match is the other part.
+        three_parts = re.compile(r'(([0-9LY][0-9]*)(?:\.)([0-9LY][0-9]*)(?:\.)([0-9LY][0-9]*))')
+        two_parts = re.compile(r'(([0-9LY][0-9]*)(?:\.)([0-9LY][0-9]*))')
+        one_part = re.compile(r'([0-9LY][0-9]*)')
+
+        match3 = three_parts.match(version_str)
+        match2 = two_parts.match(version_str)
+        match1 = one_part.match(version_str)
+        if match3:
+            major = match3.group(2)
+            minor = match3.group(3)
+            patch = match3.group(4)
+            other = version_str.replace(match3.group(1), '')
+        elif match2:
+            major = match2.group(2)
+            minor = match2.group(3)
+            patch = None
+            other = version_str.replace(match2.group(1), '')
+        elif match1:
+            major = match1.group(1)
+            minor = None
+            patch = None
+            other = version_str.replace(match1.group(1), '')
+        else:
+            # if nothing matched, raise an exception
+            raise InvalidSemverError("{} did not contain a parseable SemVer string".format(version_str))
+        other = None if other == '' else other.lstrip('-')
+
+        return cls(major, minor, patch, other)
+
+    def val(self):
+        return self.value
+
+    def __str__(self):
+        s = '{}'.format(self.major) if self.major else ''
+        s += '.{}'.format(self.minor) if self.minor else ''
+        s += '.{}'.format(self.patch) if self.patch else ''
+        s += '-{}'.format(self.other) if self.other else ''
+        return s
+
+    def substitute_yes(self):
+        major = self.major.yesval() if self.major else None
+        minor = self.minor.yesval() if self.minor else None
+        patch = self.patch.yesval() if self.patch else None
+        other = self.other.yesval() if self.other else None
+        return SemverComponents(major, minor, patch, other)
+
+
+    def substitute_lock(self, version):
+        major = self.major.lockval(version.major) if self.major else None
+        minor = self.minor.lockval(version.minor) if self.minor else None
+        patch = self.patch.lockval(version.patch) if self.patch else None
+        if self.other:
+            if self.other.lock and version.prerelease:
+                other = self.other.lockval('.'.join(version.prerelease))
+            else:
+                other = self.other.orig
+        else:
+            other = None
+
+        return SemverComponents(major, minor, patch, other)
+
+
 class SpecItemMask(object):
     MAJOR = 0
     MINOR = 1
@@ -58,7 +172,7 @@ class SpecItemMask(object):
     def handle_yes_parsing(self):
         if self.YES in self.version:
             self.has_yes = True
-            self.yes_ver = YesVersion(self.version)
+            self.yes_ver = YesVersion(self.kind, self.version)
 
             self.kind = '*'  # Accept anything from our library spec checks, we'll special-case handle all the matching
             self.version = ''
@@ -71,26 +185,18 @@ class SpecItemMask(object):
                 raise ValueError('Without a current_version, SpecItemMask objects with LOCKs ' 
                                  'cannot be converted to Specs')
 
-            # Use _parse_semver but temporarily replace L and Y to be valid
-            # this is a bit hacky...
-            lock_placeholder = '9999990'
-            yes_placeholder = '9999991'
-            parseable_version = self.version.replace(self.LOCK, lock_placeholder).replace(self.YES, yes_placeholder)
-            v = _parse_semver(str(parseable_version))
+            mask_components = SemverComponents.parse(self.version)  # our own parsing attempt
 
-            # Substitute the current version integers for LOCKs
-            if v.major == int(lock_placeholder):
-                v.major = self.current_version.major
-            if v.minor == int(lock_placeholder):
-                v.minor = self.current_version.minor
-            if v.patch == int(lock_placeholder):
-                v.patch = self.current_version.patch
-            if v.prerelease and v.prerelease[0] == lock_placeholder:
-                # prerelease is a tuple of strings
-                v.prerelease = self.current_version.prerelease
+            if not str(mask_components) == self.version:  # round trip to a string to sanity check
+                raise ValueError('{} was unable to be parsed'.format(self.version))
 
-            # put it back into a string as expected, with L replaced and Y intact
-            self.version = str(v).replace(yes_placeholder, self.YES)
+            parseable_version = mask_components.substitute_yes().substitute_lock(self.current_version)
+
+            # another sanity check to make sure it is a valid version string
+            _parse_semver(str(parseable_version))
+
+            # finally save the version string with locks substituted, but yeses still in the string
+            self.version = str(mask_components.substitute_lock(self.current_version))
 
     def parse(self, specitemmask):
         if '*' in specitemmask:
@@ -273,9 +379,10 @@ class YesVersion(object):
     YES = 'Y'
     re_num = re.compile(r'^[0-9]+|Y$')
 
-    def __init__(self, version_str):
+    def __init__(self, kind_str, version_str):
         self.major, self.minor, self.patch = YesVersionComponent(), YesVersionComponent(), YesVersionComponent()
         self.prerelease = None
+        self.kind = kind_str
         self.parse(version_str)
 
     def parse(self, version_str):
