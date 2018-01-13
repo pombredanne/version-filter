@@ -657,7 +657,7 @@ def test_next_best_specitemmask_matching_versions_yes2():
     assert('3.1.2' in subset)
 
 
-def test_next_best_specitemmask_matching_versions_yes2x():
+def test_next_best_specitemmask_matching_versions_yes3():
     mask = '-Y.0.0'
     versions = [
         '1.0.0',

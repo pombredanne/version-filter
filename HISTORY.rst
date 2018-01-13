@@ -2,10 +2,10 @@
 History
 =======
 
-0.6.1 (unreleased)
+0.7.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Add support for "Last + N" matching in masks
 
 
 0.6.0 (2018-01-08)
