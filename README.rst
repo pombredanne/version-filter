@@ -70,8 +70,7 @@ Some common examples:
 * ``'1.Y.0'`` # return only those minor versions that are of major release 1
 * ``'L.Y.0'`` # return only those minor versions that are greater than the currently installed version, but in the same
   major release
-* ``'>=L1.0.0'`` # return every minor and patch version for major versions at least 1 greater that the current major
-  version
+* ``'>=L1.0.0'`` # return every version for major versions at least 1 greater that the current major version
 * ``'-Y.0.0'`` # return only major versions that are greater than the currently installed version with "next best"
   matching enabled (will return a 2.0.1 release if 2.0.0 is never released)
 * ``'L.L.Y'`` # return only those patch versions that are greater than the currently installed version, but in the same
