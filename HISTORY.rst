@@ -5,7 +5,7 @@ History
 0.7.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Add Semver validation method
 
 
 0.7.0 (2018-01-16)
