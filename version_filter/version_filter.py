@@ -18,6 +18,15 @@ class VersionFilter(object):
         return specmask.matching_versions(versions)
 
     @staticmethod
+    def semver_validate(mask):
+        """Returns True if the given mask is valid syntactically, False otherwise"""
+        try:
+            specmask = SpecMask(mask, validate_only=True)
+        except (InvalidSemverError, ValueError) as e:
+            return False
+        return True  # all mask exceptions are raised by instantiation
+
+    @staticmethod
     def regex_filter(regex_str, versions):
         """Return a list of versions that match the given regular expression."""
         regex = re.compile(regex_str)
@@ -275,9 +284,13 @@ class SpecMask(object):
     AND = "&&"
     OR = "||"
 
-    def __init__(self, specmask, current_version=None):
+    def __init__(self, specmask, current_version=None, validate_only=False):
         self.speckmask = specmask
+        self.validate_only = validate_only
         self.current_version = current_version
+        if self.validate_only and not current_version:
+            # If we're only validating, we'll make an arbitrary current version to handle masks with LOCKs
+            self.current_version = '1.1.1'
         self.specs = None
         self.op = None
         self.parse(specmask)

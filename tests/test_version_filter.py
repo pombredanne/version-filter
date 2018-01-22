@@ -351,7 +351,8 @@ def test_prerelease_matching():
 
 def test_prerelease_matching_2():
     mask = 'L.L.Y-alpine3.6'
-    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6', '3.6.1-onbuild']
+    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6',
+                '3.6.1-onbuild']
     current_version = '3.6-alpine3.6'
     subset = VersionFilter.semver_filter(mask, versions, current_version)
     assert(1 == len(subset))
@@ -369,7 +370,8 @@ def test_prerelease_lock():
 
 def test_prerelease_lock_2():
     mask = 'L.L.Y-L'
-    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6', '3.6.1-onbuild']
+    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6',
+                '3.6.1-onbuild']
     current_version = '3.6-alpine3.6'
     subset = VersionFilter.semver_filter(mask, versions, current_version)
     assert(1 == len(subset))
@@ -654,7 +656,7 @@ def test_next_best_specitemmask_matching_versions_yes2():
     current_version = '1.0.0'
     subset = VersionFilter.semver_filter(mask, versions, current_version)
     assert(3 == len(subset))
-    assert('1.1.0' in subset) # Surprising, but it's only here because 1.0.0 (current_version) is not in the list
+    assert('1.1.0' in subset)  # Surprising, but it's only here because 1.0.0 (current_version) is not in the list
     assert('2.0.1' in subset)
     assert('3.1.2' in subset)
 
@@ -756,3 +758,19 @@ def test_in_next_major():
     assert(2 == len(subset))
     assert('2.0.0' in subset)
     assert('2.0.1' in subset)
+
+
+def test_validate_only():
+    invalid_masks = ['L1.Y.Y', '1.0.0', '1.0.0', '1.0', '1', 'L', 'L.Y', 'L.Y.Y', 'L.Y.Y', 'Y.0.0', 'Y.0.0', 'Y.Y.0',
+                     'L.Y.0', 'Y.Y.Y', '2.0.0', 'Y.Y.Y', '1.8.Y', '1.8.Y || 1.10.Y', 'Y.Y.0 || L.L.Y',
+                     '>1.8.0 && <2.0.0', 'L.Y.Y', 'L.Y.Y-Y', 'L.Y.Y-Y', 'L.Y.Y', 'Y.Y.Y', 'Y.Y.Y-Y', 'L.L.Y-alpine',
+                     'L.L.Y-alpine3.6', 'L.L.Y-L', 'L.L.Y-L', 'L.L.Y', 'L.L.Y', 'L.L.Y', 'L.L.Y', 'L.L.Y', '^1.0.0',
+                     '^L.L.L', '^L.L.L', '-1.0.0', '-1.0.0', '-1.0.0', '-L.0.0', '-L.0.0', '-L.0.0', '-Y.0.0', '-Y.0.0',
+                     '-Y.0.0', '-Y.0.0', '-Y.Y.0', '-Y.0.0', '>=L1.0.0', 'L1.Y.Y', 'L.L.L-L']
+
+    for m in invalid_masks:
+        assert(VersionFilter.semver_validate(m) is True)
+
+    invalid_masks = ['-^1.1.1', 'a', '?.?.?', '', 'YY.0.0', 'LL.0.0']
+    for m in invalid_masks:
+        assert(VersionFilter.semver_validate(m) is False)
