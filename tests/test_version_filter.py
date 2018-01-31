@@ -14,6 +14,23 @@ def test_specitemmask_asterisk():
     assert(Version('0.1.1-alpha') in s.spec)
 
 
+def test_specitemmask_asterisk_forms():
+    s = SpecItemMask(' *')
+    assert s.kind == '*'
+
+    s = SpecItemMask(' *  ')
+    assert s.kind == '*'
+
+    s = SpecItemMask('*')
+    assert s.kind == '*'
+
+    with pytest.raises(ValueError):
+        SpecItemMask('bad*')
+
+    with pytest.raises(ValueError):
+        SpecItemMask('* bad')
+
+
 def test_specitemmask_lock1():
     s = SpecItemMask('L.0.0', current_version=Version('1.0.0'))
     assert(Spec('1.0.0') == s.spec)

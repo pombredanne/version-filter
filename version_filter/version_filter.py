@@ -191,7 +191,7 @@ class SpecItemMask(object):
             self.has_lock = True
 
             if not self.current_version:
-                raise ValueError('Without a current_version, SpecItemMask objects with LOCKs ' 
+                raise ValueError('Without a current_version, SpecItemMask objects with LOCKs '
                                  'cannot be converted to Specs')
 
             mask_components = SemverComponents.parse(self.version)  # our own parsing attempt
@@ -208,7 +208,7 @@ class SpecItemMask(object):
             self.version = str(mask_components.substitute_lock(self.current_version))
 
     def parse(self, specitemmask):
-        if '*' in specitemmask:
+        if specitemmask.strip() == '*':
             self.kind = '*'
             self.version = ''
             return
