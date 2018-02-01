@@ -5,7 +5,7 @@ History
 0.7.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Tighten up the restrictions for '*' masks to only allow whitespace around the star
 
 
 0.7.1 (2018-01-22)
