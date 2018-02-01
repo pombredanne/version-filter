@@ -2,7 +2,7 @@
 History
 =======
 
-0.7.2 (unreleased)
+0.7.2 (2018-01-31)
 ------------------
 
 - Tighten up the restrictions for '*' masks to only allow whitespace around the star
