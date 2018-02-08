@@ -496,6 +496,17 @@ def test_semver_caret_with_locks():
     assert('0.3.1' in subset)
 
 
+def test_semver_filter_sorted_return():
+    mask = 'Y.Y.Y'
+    versions = ['0.9.6', '1.0.0', '0.9.5']
+    current_version = None
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(3 == len(subset))
+    assert('0.9.5' == subset[0])
+    assert('0.9.6' == subset[1])
+    assert('1.0.0' == subset[2])
+
+
 def test_valid_version_parsing_1():
     assert(Version('0.0.1') == _parse_semver('0.0.1'))
     assert(Version('0.0.1-dev0') == _parse_semver('0.0.1-dev0'))
