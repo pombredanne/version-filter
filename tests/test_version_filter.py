@@ -397,7 +397,7 @@ def test_prerelease_lock_2():
 
 def test_v_prefix_on_versions():
     mask = 'L.L.Y'
-    versions = ['v0.9.5', '=0.9.6', 'v1.0.0']
+    versions = ['v0.9.5', 'v0.9.6', 'v1.0.0']
     current_version = '0.9.5'
     subset = VersionFilter.semver_filter(mask, versions, current_version)
     assert(1 == len(subset))
