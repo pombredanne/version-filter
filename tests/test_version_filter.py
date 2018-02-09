@@ -435,8 +435,18 @@ def test_v_and_eq_prefix_on_current_version():
     mask = 'L.L.Y'
     versions = ['0.9.5', '0.9.6', '1.0.0']
     current_version = 'v=0.9.5'
-    with pytest.raises(ValueError):
-        VersionFilter.semver_filter(mask, versions, current_version)
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.9.6' in subset)
+    
+    
+def test_eq_and_eq_prefix_on_current_version():
+    mask = 'L.L.Y'
+    versions = ['0.9.5', '0.9.6', '1.0.0']
+    current_version = '==0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.9.6' in subset)
 
 
 def test_caret():
