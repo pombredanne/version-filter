@@ -320,7 +320,7 @@ class SpecMask(object):
             return any([v in x for x in self.specs])
 
     def matching_versions(self, versions):
-        """Given a list of version, return the subset that match the mask"""
+        """Given a list of version, return the sorted (ascending) subset that match the mask"""
         valid_versions = set()
         for i, version in enumerate(versions):
             try:
