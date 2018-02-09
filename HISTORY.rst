@@ -5,7 +5,8 @@ History
 0.7.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Return the list of matched version in sorted form when doing semver filtering
+- Strip _all_ leading '=' and 'v' characters from version strings
 
 
 0.7.2 (2018-01-31)
