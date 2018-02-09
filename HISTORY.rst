@@ -2,7 +2,7 @@
 History
 =======
 
-0.7.3 (unreleased)
+0.7.3 (2018-02-09)
 ------------------
 
 - Return the list of matched version in sorted form when doing semver filtering
