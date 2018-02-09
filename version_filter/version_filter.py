@@ -343,7 +343,7 @@ class SpecMask(object):
             for v_set in versions_sets:
                 matched_versions = matched_versions.union(v_set)
 
-        return [v.original_string for v in matched_versions]
+        return [v.original_string for v in sorted(matched_versions)]
 
     def __contains__(self, item):
         return self.match(item)
