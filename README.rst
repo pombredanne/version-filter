@@ -35,13 +35,26 @@ Mask Lock Extension
 
 Locks (``L``) are used as a substitution character in the mask for the major, minor and patch components where you want
 to limit the version filter to just those versions where it has the same value as the given current_version.  If a ``L``
-is present anywhere in the mask, a current_version parameter must also be provided.
+is present anywhere in the mask, a current_version parameter must also be provided.  By giving a positive integer
+immediately following the 'L' you can express "lock + int" behavior.  For example, ``L1`` in a mask states "the current
+version number + 1" for any given position.
 
 Mask Yes Extension
 ..................
 
 Yes (``Y``) are used to provide wildcard acceptance of any value in the position of the ``Y``.  It can be used in the
 major, minor, patch or pre-release components of version'
+
+'Next Best' Matching Extension
+...............................
+
+Some packages fail to ever publicly release expected semantic versions.  Take for instance a package that never releases
+a ``'2.0.0'`` version, but instead has ``'2.0.1'`` as the first available version of the 2 series.  To be able to handle
+that convention deviation without resorting to ranges or wildcards and thus losing some of the power of the Lock and Yes
+extensions you can prefix a mask with the hyphen (``-``) character.  This allows the algorithm to anticipate what
+releases "should" get released, and select the "next" release if the anticipated release never appears.  For instance,
+the mask ``'-Y.0.0'`` anticipates that the ``'2.0.0'`` release will be made, but will return the ``2.0.1`` if the
+``2.0.0`` release never appears.
 
 Boolean AND and OR
 ..................
@@ -57,6 +70,9 @@ Some common examples:
 * ``'1.Y.0'`` # return only those minor versions that are of major release 1
 * ``'L.Y.0'`` # return only those minor versions that are greater than the currently installed version, but in the same
   major release
+* ``'>=L1.0.0'`` # return every version for major versions at least 1 greater that the current major version
+* ``'-Y.0.0'`` # return only major versions that are greater than the currently installed version with "next best"
+  matching enabled (will return a 2.0.1 release if 2.0.0 is never released)
 * ``'L.L.Y'`` # return only those patch versions that are greater than the currently installed version, but in the same
   major and minor release
 * ``'Y.Y.Y'`` # return all major, minor and patch versions

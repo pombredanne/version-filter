@@ -1,8 +1,9 @@
+from __future__ import unicode_literals
 import pytest
 
 from version_filter import VersionFilter
 from version_filter import SpecItemMask, SpecMask
-from version_filter.version_filter import _parse_semver, InvalidSemverError
+from version_filter.version_filter import _parse_semver, InvalidSemverError, YesVersion
 from semantic_version import Version, Spec
 
 
@@ -11,6 +12,23 @@ def test_specitemmask_asterisk():
     assert(Spec('*') == s.spec)
     assert(Version('0.0.1') in s.spec)
     assert(Version('0.1.1-alpha') in s.spec)
+
+
+def test_specitemmask_asterisk_forms():
+    s = SpecItemMask(' *')
+    assert s.kind == '*'
+
+    s = SpecItemMask(' *  ')
+    assert s.kind == '*'
+
+    s = SpecItemMask('*')
+    assert s.kind == '*'
+
+    with pytest.raises(ValueError):
+        SpecItemMask('bad*')
+
+    with pytest.raises(ValueError):
+        SpecItemMask('* bad')
 
 
 def test_specitemmask_lock1():
@@ -26,6 +44,21 @@ def test_specitemmask_lock2():
 def test_specitemmask_lock3():
     s = SpecItemMask('L.L.L', current_version=Version('1.8.3'))
     assert(Spec('1.8.3') == s.spec)
+
+
+def test_specitemmask_lock4():
+    s = SpecItemMask('L1.L.L', current_version=Version('1.8.3'))
+    assert(Spec('2.8.3') == s.spec)
+
+
+def test_specitemmask_lock5():
+    s = SpecItemMask('L1.L999.L', current_version=Version('1.8.3'))
+    assert(Spec('2.1007.3') == s.spec)
+
+
+def test_specitemmask_lock6():
+    with pytest.raises(ValueError):
+        SpecItemMask('L-1.L999.L', current_version=Version('1.8.3'))
 
 
 def test_specitemmask_yes1():
@@ -121,7 +154,7 @@ def test_partial_versions_3():
     mask = 'L'
     current_version = '1'
     s = SpecItemMask(mask, current_version)
-    assert(s.spec == Spec('==1.0.0'))
+    assert(s.spec == Spec('==1'))
 
 
 def test_partial_versions_4():
@@ -335,7 +368,8 @@ def test_prerelease_matching():
 
 def test_prerelease_matching_2():
     mask = 'L.L.Y-alpine3.6'
-    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6', '3.6.1-onbuild']
+    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6',
+                '3.6.1-onbuild']
     current_version = '3.6-alpine3.6'
     subset = VersionFilter.semver_filter(mask, versions, current_version)
     assert(1 == len(subset))
@@ -353,7 +387,8 @@ def test_prerelease_lock():
 
 def test_prerelease_lock_2():
     mask = 'L.L.Y-L'
-    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6', '3.6.1-onbuild']
+    versions = ['3.6', '3.6-alpine', '3.6-alpine3.6', '3.6-onbuild', '3.6.1', '3.6.1-alpine', '3.6.1-alpine3.6',
+                '3.6.1-onbuild']
     current_version = '3.6-alpine3.6'
     subset = VersionFilter.semver_filter(mask, versions, current_version)
     assert(1 == len(subset))
@@ -400,8 +435,86 @@ def test_v_and_eq_prefix_on_current_version():
     mask = 'L.L.Y'
     versions = ['0.9.5', '0.9.6', '1.0.0']
     current_version = 'v=0.9.5'
-    with pytest.raises(ValueError):
-        VersionFilter.semver_filter(mask, versions, current_version)
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.9.6' in subset)
+    
+    
+def test_eq_and_eq_prefix_on_current_version():
+    mask = 'L.L.Y'
+    versions = ['0.9.5', '0.9.6', '1.0.0']
+    current_version = '==0.9.5'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.9.6' in subset)
+
+
+def test_caret():
+    mask = '^1.0.0'
+    versions = ['1.0.0', '1.0.1', '1.1.0', '1.2.0-alpha', '2.0.0', '2.0.0-beta']
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('1.0.1' in subset)
+    assert('1.1.0' in subset)
+
+
+def test_caret_babel_cli_example():
+    mask = '^L.L.L'
+    versions = [
+        '6.24.0',
+        '7.0.0-alpha.3',
+        '7.0.0-alpha.4',
+        '7.0.0-alpha.6',
+        '7.0.0-alpha.7',
+        '6.24.1',
+        '7.0.0-alpha.8',
+        '7.0.0-alpha.9',
+        '7.0.0-alpha.10',
+        '7.0.0-alpha.11',
+        '7.0.0-alpha.12',
+        '7.0.0-alpha.14',
+    ]
+    current_version = '6.24.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('6.24.1' in subset)
+
+
+def test_semver_caret():
+    spec = Spec('^1.0.0')
+    assert(Version('1.1.0') in spec)
+    assert(Version('1.1.0-alpha') not in spec)
+
+    assert(Version('2.0.0') not in spec)
+    assert(Version('2.0.0-alpha') not in spec)
+
+
+def test_semver_caret_with_zero_major():
+    spec = Spec('^0.3.0')
+    assert(Version('0.4.0') not in spec)
+    assert(Version('0.3.1') in spec)
+    assert(Version('1.3.0') not in spec)
+
+
+def test_semver_caret_with_locks():
+    mask = '^L.L.L'
+    versions = ['0.3.0', '0.3.1', '0.4.0', '1.0.0', '1.3.0']
+    current_version = '0.3.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('0.3.1' in subset)
+
+
+def test_semver_filter_sorted_return():
+    mask = 'Y.Y.Y'
+    versions = ['0.9.6', '1.0.0', '0.9.5']
+    current_version = None
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(3 == len(subset))
+    assert('0.9.5' == subset[0])
+    assert('0.9.6' == subset[1])
+    assert('1.0.0' == subset[2])
 
 
 def test_valid_version_parsing_1():
@@ -414,3 +527,288 @@ def test_valid_version_parsing_1():
 def test_invalid_version_parsing_1():
     with pytest.raises(InvalidSemverError):
         _parse_semver('0.0.1.build0')  # invalid build string
+
+
+def test_next_best_specitemmask():
+    s = SpecItemMask('-1.0.0')
+    assert(Spec('1.0.0') == s.spec)
+    assert s.has_next_best
+
+
+def test_next_best_specitemmask_matching_versions_literal1():
+    mask = '-1.0.0'
+    versions = [
+        '1.0.1',
+        '2.0.1',
+    ]
+    subset = VersionFilter.semver_filter(mask, versions)
+    assert(1 == len(subset))
+    assert('1.0.1' in subset)
+
+
+def test_next_best_specitemmask_matching_versions_literal2():
+    mask = '-1.0.0'
+    versions = [
+        '1.1.0',
+        '2.0.1',
+    ]
+    subset = VersionFilter.semver_filter(mask, versions)
+    assert(1 == len(subset))
+    assert('1.1.0' in subset)
+
+
+def test_next_best_specitemmask_matching_versions_literal3():
+    mask = '-1.0.0'
+    versions = [
+        '1.0.0',
+        '2.0.1',
+    ]
+    subset = VersionFilter.semver_filter(mask, versions)
+    assert(0 == len(subset))
+
+
+def test_next_best_specitemmask_matching_versions_lock1():
+    mask = '-L.0.0'
+    versions = [
+        '1.0.1',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('1.0.1' in subset)
+
+
+def test_next_best_specitemmask_matching_versions_lock2():
+    mask = '-L.0.0'
+    versions = [
+        '1.1.0',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('1.1.0' in subset)
+
+
+def test_next_best_specitemmask_matching_versions_lock3():
+    mask = '-L.0.0'
+    versions = [
+        '1.0.0',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(0 == len(subset))
+
+
+def test_get_next_best_versions1():
+    y = YesVersion('*', 'Y.0.0')
+    versions = [
+        '1.0.0',
+        '1.0.1',
+        '2.0.1',
+        '2.1.0'
+    ]
+    versions = [_parse_semver(x) for x in versions]
+
+    result = y.get_next_best_versions(versions)
+    assert(1 == len(result))
+    assert(_parse_semver('2.0.0') in result)
+
+
+def test_get_next_best_versions2():
+    y = YesVersion('*', 'Y.Y.0')
+    versions = [
+        '1.0.0',
+        '1.0.1',
+        '1.1.1',
+        '2.0.1',
+        '2.1.1'
+    ]
+    versions = [_parse_semver(x) for x in versions]
+
+    result = y.get_next_best_versions(versions)
+    assert(3 == len(result))
+    assert(_parse_semver('1.1.0') in result)
+    assert(_parse_semver('2.0.0') in result)
+    assert(_parse_semver('2.1.0') in result)
+
+
+def test_get_next_best_versions3():
+    y = YesVersion('*', '1.0.0')
+    versions = [
+        '1.0.0',
+        '1.0.1',
+        '1.1.1',
+        '2.0.1',
+        '2.1.1'
+    ]
+    versions = [_parse_semver(x) for x in versions]
+
+    result = y.get_next_best_versions(versions)
+    assert(0 == len(result))
+
+
+def test_get_next_best_versions4():
+    y = YesVersion('*', 'Y.Y.Y')
+    versions = [
+        '1.0.0',
+        '1.0.1',
+        '1.0.5',
+        '1.1.1',
+        '2.0.1',
+        '2.1.1'
+    ]
+    versions = [_parse_semver(x) for x in versions]
+
+    result = y.get_next_best_versions(versions)
+    assert(3 == len(result))
+    assert(_parse_semver('1.0.2') in result)
+    assert(_parse_semver('1.0.3') in result)
+    assert(_parse_semver('1.0.4') in result)
+
+
+def test_next_best_specitemmask_matching_versions_yes1():
+    mask = '-Y.0.0'
+    versions = [
+        '1.0.1',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('1.0.1' in subset)  # how could the 1.0.0 current version exists if this is the first version in list
+    assert('2.0.1' in subset)
+
+
+def test_next_best_specitemmask_matching_versions_yes2():
+    mask = '-Y.0.0'
+    versions = [
+        '1.1.0',
+        '1.2.0',
+        '1.3.0',
+        '2.0.1',
+        '3.1.2',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(3 == len(subset))
+    assert('1.1.0' in subset)  # Surprising, but it's only here because 1.0.0 (current_version) is not in the list
+    assert('2.0.1' in subset)
+    assert('3.1.2' in subset)
+
+
+def test_next_best_specitemmask_matching_versions_yes3():
+    mask = '-Y.0.0'
+    versions = [
+        '1.0.0',
+        '1.1.0',
+        '1.2.0',
+        '1.3.0',
+        '2.0.1',
+        '3.1.2',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('2.0.1' in subset)
+    assert('3.1.2' in subset)
+
+
+def test_next_best_specitemmask_matching_versions_yes4():
+    mask = '-Y.0.0'
+    versions = [
+        '1.0.0',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('2.0.1' in subset)
+
+
+def test_next_best_specitemmask_matching_versions_yes5():
+    mask = '-Y.Y.0'
+    versions = [
+        '1.0.0',
+        '1.1.0',
+        '1.1.1',
+        '1.2.1',
+        '2.0.1',
+    ]
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('1.2.1' in subset)
+    assert('2.0.1' in subset)
+
+
+def test_next_best_specitemmask_matching_versions_yes6():
+    mask = '-Y.0.0'
+    versions = [
+        '1.0.0',
+        '1.1.0',
+        '1.1.1',
+        '1.2.1',
+        '2.0.1',
+    ]
+    current_version = '1.2.1'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(1 == len(subset))
+    assert('2.0.1' in subset)
+
+
+def test_next_best_specitemmask_with_range_1():
+    """Mixing semver range operators and next_best matching is not allowed"""
+    mask = '-^1.0.0'
+    versions = [
+        '1.0.0',
+    ]
+    with pytest.raises(ValueError):
+        VersionFilter.semver_filter(mask, versions)
+
+
+def test_next_best_example():
+    versions = ['1.0.0', '2.0.0', '3.0.1']
+    current_version = '2.0.0'
+    assert VersionFilter.semver_filter('Y.0.0', versions, current_version) == []
+    # but with next_best ...
+    assert VersionFilter.semver_filter('-Y.0.0', versions, current_version) == ['3.0.1']
+
+
+def test_greater_than_next_major():
+    mask = '>=L1.0.0'
+    versions = ['1.0.0', '1.0.1', '1.1.0', '1.2.0', '2.0.0', '2.0.1', '3.0.0']
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(3 == len(subset))
+    assert('2.0.0' in subset)
+    assert('2.0.1' in subset)
+    assert('3.0.0' in subset)
+
+
+def test_in_next_major():
+    mask = 'L1.Y.Y'
+    versions = ['1.0.0', '1.0.1', '1.1.0', '1.2.0', '2.0.0', '2.0.1', '3.0.0']
+    current_version = '1.0.0'
+    subset = VersionFilter.semver_filter(mask, versions, current_version)
+    assert(2 == len(subset))
+    assert('2.0.0' in subset)
+    assert('2.0.1' in subset)
+
+
+def test_validate_only():
+    invalid_masks = ['L1.Y.Y', '1.0.0', '1.0.0', '1.0', '1', 'L', 'L.Y', 'L.Y.Y', 'L.Y.Y', 'Y.0.0', 'Y.0.0', 'Y.Y.0',
+                     'L.Y.0', 'Y.Y.Y', '2.0.0', 'Y.Y.Y', '1.8.Y', '1.8.Y || 1.10.Y', 'Y.Y.0 || L.L.Y',
+                     '>1.8.0 && <2.0.0', 'L.Y.Y', 'L.Y.Y-Y', 'L.Y.Y-Y', 'L.Y.Y', 'Y.Y.Y', 'Y.Y.Y-Y', 'L.L.Y-alpine',
+                     'L.L.Y-alpine3.6', 'L.L.Y-L', 'L.L.Y-L', 'L.L.Y', 'L.L.Y', 'L.L.Y', 'L.L.Y', 'L.L.Y', '^1.0.0',
+                     '^L.L.L', '^L.L.L', '-1.0.0', '-1.0.0', '-1.0.0', '-L.0.0', '-L.0.0', '-L.0.0', '-Y.0.0', '-Y.0.0',
+                     '-Y.0.0', '-Y.0.0', '-Y.Y.0', '-Y.0.0', '>=L1.0.0', 'L1.Y.Y', 'L.L.L-L']
+
+    for m in invalid_masks:
+        assert(VersionFilter.semver_validate(m) is True)
+
+    invalid_masks = ['-^1.1.1', 'a', '?.?.?', '', 'YY.0.0', 'LL.0.0']
+    for m in invalid_masks:
+        assert(VersionFilter.semver_validate(m) is False)

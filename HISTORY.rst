@@ -2,10 +2,47 @@
 History
 =======
 
-0.5.1 (unreleased)
+0.7.4 (unreleased)
 ------------------
 
 - Nothing changed yet.
+
+
+0.7.3 (2018-02-09)
+------------------
+
+- Return the list of matched version in sorted form when doing semver filtering
+- Strip _all_ leading '=' and 'v' characters from version strings
+
+
+0.7.2 (2018-01-31)
+------------------
+
+- Tighten up the restrictions for '*' masks to only allow whitespace around the star
+
+
+0.7.1 (2018-01-22)
+------------------
+
+- Add Semver validation method
+
+
+0.7.0 (2018-01-16)
+------------------
+
+- Add support for "Last + N" matching in masks
+
+
+0.6.0 (2018-01-08)
+------------------
+
+- Enable the "Next Best" matching algorithm to find next best releases when anticipated releases do not exist
+
+
+0.5.1 (2017-12-09)
+------------------
+
+- Use forked version of python-semanticversion to get NPM consistent caret (^) matching behavior
 
 
 0.5.0 (2017-07-19)
